@@ -19,6 +19,7 @@ from metrics import get_metrics
 from config import Config
 from epo_lp import *
 import re
+from typing import Dict, List, OrderedDict
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -122,7 +123,10 @@ class Server(object):
         if self.config['algorithm'] == 'fedcmoo_pref':
             self.preference = preference = np.array([1 for _ in self.tasks]) if self.config['algorithm_args'][self.config['algorithm']]['preference'] == 'uniform' else np.array( self.config['algorithm_args'][self.config['algorithm']]['preference'] )
             logging.info(f"The preference is: " + ', '.join([f'{self.tasks[i]}: {temp:.4f}' for i, temp in enumerate(preference)]))
-        
+
+        self.c_global = None
+        self.g_global = None
+
         self.scales = {task: float(1/len(self.tasks)) for i, task in enumerate(self.tasks)}
 
         if self.config['algorithm'] in ['fedcmoo', 'fedcmoo_pref']:          
@@ -343,6 +347,91 @@ class Server(object):
                 if self.boost_w_gpu:
                     transfer_parameters(self.model_cuda, self.model)
 
+            elif self.config['algorithm'] == 'fedadam':
+                scale_updates = []
+                last_free_memory = 0
+                for i, client in enumerate(participating_clients):
+                    if self.boost_w_gpu and 3 * return_free_gpu_memory() > 2 * last_free_memory + 2500:  # Use gpu_save if there is enough memory 500 MB buffer. 3x and 2x are important calculated numbers
+                        save_to_gpu = True
+                        last_free_memory = return_free_gpu_memory()
+                    else:
+                        save_to_gpu = False
+                    client_scale_update, _ = client.local_train(self.config,
+                                                                {key: copy.deepcopy(
+                                                                    {True: self.model_cuda, False: self.model}[
+                                                                        self.boost_w_gpu][key]) for key in self.model},
+                                                                self.experiment_module, self.tasks,
+                                                                first_local_round=True, current_weight=self.scales,
+                                                                save_to_gpu=save_to_gpu)
+                    scale_updates.append(client_scale_update)
+
+                G_T_G_estimate = self.estimateG_T_G(matrices=scale_updates,
+                                                    method=self.config['proposed_approx_method']) / len(scale_updates)
+
+                # Update idea adapted from https://github.com/OptMN-Lab/sdmgrad/blob/main/methods/weight_methods.py#L770
+                self.fedcmoo_update_scales(torch.tensor(G_T_G_estimate))
+                algorithm_specific_log += f' Scales: ' + ', '.join(
+                    [f'{task}: {self.scales[task]:.4f}' for task in self.scales])
+
+                # Now continue the remaining local rounds
+                # Initialize averaged_updates
+                averaged_updates = {'rep': {}, **{task: {} for task in self.tasks}}
+
+                # Initialize 'rep' part using state_dict
+                for key, param in {True: self.model_cuda, False: self.model}[self.boost_w_gpu][
+                    'rep'].state_dict().items():
+                    averaged_updates['rep'][key] = torch.zeros_like(param)
+
+                # Initialize task-specific parts using state_dict
+                for task in self.tasks:
+                    for key, param in {True: self.model_cuda, False: self.model}[self.boost_w_gpu][task].state_dict().items():
+                        averaged_updates[task][key] = torch.zeros_like(param)
+
+                # 初始化c_global和g_global，暂时取0
+                if self.round_num == 0:
+                    self.c_global = [
+                        torch.zeros_like(param).to(device)
+                        for param in self.model['rep'].parameters()]
+
+                    self.g_global = [
+                        torch.zeros_like(param).to(device)
+                        for param in self.model['rep'].parameters()]
+
+                    self.c_local: Dict[List[torch.Tensor]] = {i:[torch.zeros_like(param).to(device)
+                        for param in self.model['rep'].parameters()] for i in range(len(participating_clients))}
+
+                for i, client in enumerate(participating_clients):
+                    updates = client.local_train(self.config,
+                                                 {key: copy.deepcopy(
+                                                     {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
+                                                  for key in self.model},
+                                                 self.experiment_module, self.tasks, first_local_round=False,
+                                                 current_weight=self.scales,
+                                                 c_global=self.c_global,
+                                                 g_global=self.g_global,
+                                                 c_local=self.c_local[i]
+                                                 )
+                    # 更新c_local
+                    self.c_local[i] = updates['c_local']
+
+                    # Apply weighted updates
+                    for key in updates['rep']:
+                        averaged_updates['rep'][key] += updates['rep'][key] / len(participating_clients)
+                    for task in self.tasks:
+                        for key in updates[task]:
+                            averaged_updates[task][key] += updates[task][key] / len(participating_clients)
+                averaged_updates = normalize_updates(averaged_updates, self.tasks, self.config)
+
+                self.aggregate_updates(model_to_aggregate={True: self.model_cuda, False: self.model}[self.boost_w_gpu],
+                                       normalized_updates=averaged_updates)
+                if self.boost_w_gpu:
+                    transfer_parameters(self.model_cuda, self.model)
+
+                # 更新控制变量c
+                self.c_aggregate(self.c_local)
+
+                # 更新控制变量g
+                self.g_aggregate(self.c_local)
 
             # Initialize an empty dictionary to collect all WandB logs
             wandb_log_data = {}
@@ -385,7 +474,7 @@ class Server(object):
                             self.lastTrainMeanLoss = mean_loss
         
                 self.metrics.update_metrics('train', average_total_metrics)
-                log_message = f'Round {self.round_num + 1}: Train eval: '
+                log_message = f'Round {self.round_num + 1}: Train eval:'
                 for task in self.tasks:
                     for metric in self.metrics.eval_metrics[task]:
                         log_message += f'Task {task} {metric} = {average_total_metrics[task][metric]:.4f}, '
@@ -640,7 +729,7 @@ class Server(object):
                     else:
                         update_value = self.config['hyperparameters']['global_lr'] * normalized_updates[task][task][param_name]
                     model_to_aggregate[task].state_dict()[param_name].add_(update_value)
-        elif (self.config['algorithm'] in ['fedcmoo']) or ('fedcmoo_pref' in self.config['algorithm']):
+        elif (self.config['algorithm'] in ['fedcmoo']) or ('fedcmoo_pref' in self.config['algorithm']) or ('fedadam' in self.config['algorithm']):
             normalized_updates = kwargs['normalized_updates']
             # Update the 'rep' part
             for param_name in model_to_aggregate['rep'].state_dict().keys():
@@ -853,3 +942,43 @@ class Server(object):
                     # myDel(term1, term2, term3, term4,rsumC_full, sumC, C_list, D_list)
                     return B_T_B_approx.cpu().numpy()
             logging.info("!! Error: Unknown method for approximation of covariance of Jacobian matrix !!")
+
+    def c_aggregate(self, update):
+        c_delta_list = list(update.values())
+        # c_delta_cache = list(zip(c_delta_list))
+
+        # update global model
+        avg_weight = torch.tensor(
+            [
+                1 / self.config["nb_of_participating_clients"]
+                for _ in range(self.config["nb_of_participating_clients"])
+            ],
+            device=device,
+        )
+
+        # update global control
+        for c_g, c_del in zip(self.c_global, zip(*c_delta_list)):
+            c_del = torch.sum(avg_weight * torch.stack(c_del, dim=-1), dim=-1)
+            c_g.data += (
+                                self.config["nb_of_participating_clients"] / self.config['clients']['total']
+                        ) * c_del
+
+    def g_aggregate(self, update):
+        # c_global = update['c_global']
+        c_delta_list = list(update.values())
+        beta = self.config['algorithm_args'][self.config['algorithm']]['beta']
+        # update global model
+        avg_weight = torch.tensor(
+            [
+                1 / self.config["nb_of_participating_clients"]
+                for _ in range(self.config["nb_of_participating_clients"])
+            ],
+            device=device,
+        )
+
+        # update global control
+        for c_g, c_del,g_global in zip(self.c_global, zip(*c_delta_list),self.g_global):
+            c_del = torch.sum(avg_weight * torch.stack(c_del, dim=-1), dim=-1)
+            c_g.data += c_del
+
+            g_global.data += beta*c_g.data + (1-beta) * g_global.data
