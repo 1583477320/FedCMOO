@@ -21,13 +21,13 @@
                           "normalize_updates" : false,
                           "preference": "uniform",
                           "min_weight_multiplier": 0.2},
-                  "fedadam":{"scale_decoders" : false,
+                  "fedadam":{"scale_decoders" : true,
                           "count_decoders": false ,
                           "normalize_updates" : true,
                           "scale_lr": 0.001,
                           "scale_momentum": 0,
                           "scale_n_iter": 1000,
-                          "beta": 0.9}
+                          "beta": 0.5}
 },
 "experiment": "MultiMNIST",
 "exp_identifier": "v1",
@@ -48,12 +48,12 @@
 "model_device": "cuda",
 "data_seed": 1,
 "hyperparameters": {
-    "global_lr":1,
+    "global_lr":0.5,
     "local_training": {
         "optimizer": "SGD",
         "batch_size": 128,
         "nb_of_local_rounds": 10,
-        "local_lr": 0.5,
+        "local_lr": 0.1,
         "local_momentum": 0,
         "local_lr_scheduler_flag": false
     }
