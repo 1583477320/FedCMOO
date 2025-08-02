@@ -55,7 +55,7 @@
         "nb_of_local_rounds": 10,
         "local_lr": 0.1,
         "local_momentum": 0,
-        "local_lr_scheduler_flag": false
+        "local_lr_scheduler_flag": true
     }
 },
 "data": {
