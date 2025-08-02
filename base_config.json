@@ -48,7 +48,7 @@
 "model_device": "cuda",
 "data_seed": 1,
 "hyperparameters": {
-    "global_lr":0.5,
+    "global_lr":1,
     "local_training": {
         "optimizer": "SGD",
         "batch_size": 128,
