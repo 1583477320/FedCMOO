@@ -377,7 +377,7 @@ class Server(object):
                 # Initialize averaged_updates
                 averaged_updates = {'rep': {}, **{task: {} for task in self.tasks}}
 
-                # Initialize 'rep' part using state_dict
+                # Initialize 'rep' part using state_dict,初始化averaged_updates
                 for key, param in {True: self.model_cuda, False: self.model}[self.boost_w_gpu][
                     'rep'].state_dict().items():
                     averaged_updates['rep'][key] = torch.zeros_like(param)
@@ -427,11 +427,9 @@ class Server(object):
                 if self.boost_w_gpu:
                     transfer_parameters(self.model_cuda, self.model)
 
-                # 更新控制变量c
-                self.c_aggregate(self.c_local)
-
-                # 更新控制变量g
-                self.g_aggregate(self.c_local)
+                # 更新控制变量c和g
+                c_clone = self.c_global.copy()
+                self.c_aggregate(self.c_local, c_clone)
 
             # Initialize an empty dictionary to collect all WandB logs
             wandb_log_data = {}
@@ -943,10 +941,11 @@ class Server(object):
                     return B_T_B_approx.cpu().numpy()
             logging.info("!! Error: Unknown method for approximation of covariance of Jacobian matrix !!")
 
-    def c_aggregate(self, update):
+    def c_aggregate(self, update, c_clone):
         c_delta_list = list(update.values())
         # c_delta_cache = list(zip(c_delta_list))
-
+        c_global = c_clone
+        beta = self.config['algorithm_args'][self.config['algorithm']]['beta']
         # update global model
         avg_weight = torch.tensor(
             [
@@ -957,12 +956,14 @@ class Server(object):
         )
 
         # update global control
-        for c_g, c_del in zip(self.c_global, zip(*c_delta_list)):
+        for c_g,c_c, c_del,g_global in zip(c_global, c_clone, zip(*c_delta_list),self.g_global):
             c_del = torch.sum(avg_weight * torch.stack(c_del, dim=-1), dim=-1)
             c_g.data += (
                                 self.config["nb_of_participating_clients"] / self.config['clients']['total']
                         ) * c_del
 
+            c_c.data += c_del
+            g_global.data += beta * c_c.data + (1 - beta) * g_global.data
     def g_aggregate(self, update):
         # c_global = update['c_global']
         c_delta_list = list(update.values())
