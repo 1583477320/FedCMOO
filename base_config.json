@@ -21,7 +21,7 @@
                           "normalize_updates" : false,
                           "preference": "uniform",
                           "min_weight_multiplier": 0.2},
-                  "fedadam":{"scale_decoders" : true,
+                  "fedadam":{"scale_decoders" : false,
                           "count_decoders": false ,
                           "normalize_updates" : true,
                           "scale_lr": 0.001,
@@ -53,7 +53,7 @@
         "optimizer": "SGD",
         "batch_size": 128,
         "nb_of_local_rounds": 10,
-        "local_lr": 0.1,
+        "local_lr": 0.08,
         "local_momentum": 0,
         "local_lr_scheduler_flag": false
     }
