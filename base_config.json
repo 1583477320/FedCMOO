@@ -23,7 +23,7 @@
                           "min_weight_multiplier": 0.2},
                   "fedadam":{"scale_decoders" : false,
                           "count_decoders": false ,
-                          "normalize_updates" : true,
+                          "normalize_updates" : false,
                           "scale_lr": 0.001,
                           "scale_momentum": 0,
                           "scale_n_iter": 1000,
