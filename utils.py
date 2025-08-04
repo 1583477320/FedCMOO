@@ -87,7 +87,7 @@ def average_updates(all_updates, tasks, algo):
                     averaged_updates[task]['rep'][key] /= task_client_counts[task]
                 for key in averaged_updates[task][task]:
                     averaged_updates[task][task][key] /= task_client_counts[task]
-    if algo in ['fedcmoo','fedcmoo_pref','fedadam']:
+    if algo in ['fedcmoo','fedcmoo_pref','fedadam','fedcmoo_test']:
         averaged_updates = {'rep': {}, **{task: {} for task in tasks}}
         client_count = len(all_updates)
 
@@ -217,7 +217,7 @@ def normalize_updates(updates, tasks, config):
                 normalized_updates[task][task][key] = normalized_vector[start:end].view_as(normalized_updates[task][task][key])
                 start = end
         return normalized_updates
-    elif config['algorithm'] in ['fedcmoo'] or 'fedcmoo_pref' in config['algorithm'] or 'fedadam' in config['algorithm']:
+    elif config['algorithm'] in ['fedcmoo'] or 'fedcmoo_pref' in config['algorithm'] or 'fedadam' in config['algorithm'] or config['algorithm'] in ['fedcmoo_test']:
         combined_updates = []
 
         # Combine 'rep' and all task-specific updates into a single vector
