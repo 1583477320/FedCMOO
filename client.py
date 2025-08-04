@@ -752,9 +752,11 @@ class Client(object):
                             for task in tasks:
                                 for param, grad,c_global,g_global,c_local in zip(global_model['rep'].parameters(), task_gradients[task]['rep'], kwargs['c_global'],kwargs['g_global'],kwargs['c_local']):
                                     if param.grad is None:
-                                        param.grad = beta * (grad * current_weight[task])+avg_task * (beta * (c_global-c_local)+(1-beta) * g_global)
+                                        # param.grad = beta * (grad * current_weight[task])+avg_task * (beta * (c_global-c_local)+(1-beta) * g_global)
+                                        param.grad = grad * current_weight[task]
                                     else:
-                                        param.grad += beta * (grad * current_weight[task])+avg_task * (beta * (c_global-c_local)+(1-beta) * g_global)
+                                        # param.grad += beta * (grad * current_weight[task])+avg_task * (beta * (c_global-c_local)+(1-beta) * g_global)
+                                        param.grad = grad * current_weight[task]
                                 temp = current_weight[task] if config['algorithm_args'][config['algorithm']][
                                     'scale_decoders'] else 1
                                 for param, grad in zip(global_model[task].parameters(), task_gradients[task]['task']):
