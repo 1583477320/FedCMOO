@@ -407,9 +407,9 @@ class Server(object):
                                                   for key in self.model},
                                                  self.experiment_module, self.tasks, first_local_round=False,
                                                  current_weight=self.scales,
-                                                 # c_global=self.c_global,
-                                                 # g_global=self.g_global,
-                                                 # c_local=self.c_local[i]
+                                                 c_global=self.c_global,
+                                                 g_global=self.g_global,
+                                                 c_local=self.c_local[i]
                                                  )
                     # 更新c_local
                     # self.c_local[i] = updates['c_local']
