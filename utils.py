@@ -217,7 +217,7 @@ def normalize_updates(updates, tasks, config):
                 normalized_updates[task][task][key] = normalized_vector[start:end].view_as(normalized_updates[task][task][key])
                 start = end
         return normalized_updates
-    elif config['algorithm'] in ['fedcmoo'] or 'fedcmoo_pref' in config['algorithm'] or 'fedadam' in config['algorithm'] or config['algorithm'] in ['fedcmoo_test']:
+    elif config['algorithm'] in ['fedcmoo','fedcmoo_test'] or 'fedcmoo_pref' in config['algorithm'] or 'fedadam' in config['algorithm']:
         combined_updates = []
 
         # Combine 'rep' and all task-specific updates into a single vector
