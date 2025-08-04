@@ -56,7 +56,14 @@ class Config(object):
                                       'count_decoders': False,
                                      'scale_decoders' : True,
                                       'preference': 'uniform',
-                                      'min_weight_multiplier': 0.2}
+                                      'min_weight_multiplier': 0.2},
+                              "fedadam":{"scale_decoders" : False,
+                          "count_decoders": False ,
+                          "normalize_updates" : False,
+                          "scale_lr": 0.001,
+                          "scale_momentum": 0,
+                          "scale_n_iter": 1000,
+                          "beta": 1}
                              },
             "experiment": "MultiMNIST",
             "exp_identifier": None,
