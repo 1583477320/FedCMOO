@@ -10,7 +10,7 @@
                              "count_decoders" : false,
                              "normalize_updates" : false,
                              "compression" : false},
-                  "fedcmoo":{"scale_decoders" : true,
+                  "fedcmoo":{"scale_decoders" : false,
                           "count_decoders": false ,
                           "normalize_updates" : false,
                           "scale_lr": 0.001,
