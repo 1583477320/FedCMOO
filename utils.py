@@ -87,7 +87,7 @@ def average_updates(all_updates, tasks, algo):
                     averaged_updates[task]['rep'][key] /= task_client_counts[task]
                 for key in averaged_updates[task][task]:
                     averaged_updates[task][task][key] /= task_client_counts[task]
-    if algo in ['fedcmoo','fedcmoo_pref']:
+    if algo in ['fedcmoo','fedcmoo_pref','fedadam']:
         averaged_updates = {'rep': {}, **{task: {} for task in tasks}}
         client_count = len(all_updates)
 
