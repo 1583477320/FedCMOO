@@ -412,7 +412,7 @@ class Server(object):
                                                  c_local=self.c_local[i]
                                                  )
                     # 更新c_local
-                    self.c_local[i] = updates['c_local']
+                    # self.c_local[i] = updates['c_local']
 
                     # Apply weighted updates
                     for key in updates['rep']:
@@ -428,8 +428,8 @@ class Server(object):
                     transfer_parameters(self.model_cuda, self.model)
 
                 # 更新控制变量c和g
-                c_clone = self.c_global.copy()
-                self.c_aggregate(self.c_local, c_clone)
+                # c_clone = self.c_global.copy()
+                # self.c_aggregate(self.c_local, c_clone)
 
             # Initialize an empty dictionary to collect all WandB logs
             wandb_log_data = {}
