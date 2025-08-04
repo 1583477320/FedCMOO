@@ -1,6 +1,6 @@
 {
 "clients": {
-    "total": 100,
+    "total": 10,
     "do_test": false,
     "test_partition": 0,
     "data_points": 400
