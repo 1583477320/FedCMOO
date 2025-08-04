@@ -27,6 +27,13 @@
                           "scale_lr": 0.001,
                           "scale_momentum": 0,
                           "scale_n_iter": 1000,
+                          "beta": 1},
+                "fedcmoo_test":{"scale_decoders" : false,
+                          "count_decoders": false ,
+                          "normalize_updates" : false,
+                          "scale_lr": 0.001,
+                          "scale_momentum": 0,
+                          "scale_n_iter": 1000,
                           "beta": 1}
 },
 "experiment": "MultiMNIST",
