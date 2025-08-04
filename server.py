@@ -431,6 +431,55 @@ class Server(object):
                 # c_clone = self.c_global.copy()
                 # self.c_aggregate(self.c_local, c_clone)
 
+            elif self.config['algorithm'] == 'fedcmoo_test':
+                scale_updates = []
+                last_free_memory = 0
+                for i, client in enumerate(participating_clients):
+                    if self.boost_w_gpu and 3*return_free_gpu_memory() > 2*last_free_memory+ 2500: # Use gpu_save if there is enough memory 500 MB buffer. 3x and 2x are important calculated numbers
+                        save_to_gpu = True
+                        last_free_memory = return_free_gpu_memory()
+                    else:
+                        save_to_gpu = False
+                    client_scale_update, _ = client.local_train(self.config, 
+                                    {key:copy.deepcopy({True: self.model_cuda, False:  self.model}[self.boost_w_gpu][key]) for key in self.model}, 
+                                    self.experiment_module, self.tasks, first_local_round=True, current_weight=self.scales, save_to_gpu = save_to_gpu)
+                    scale_updates.append(client_scale_update)
+    
+                G_T_G_estimate = self.estimateG_T_G(matrices = scale_updates, method = self.config['proposed_approx_method'])/len(scale_updates)
+                
+                # Update idea adapted from https://github.com/OptMN-Lab/sdmgrad/blob/main/methods/weight_methods.py#L770
+                self.fedcmoo_update_scales(torch.tensor(G_T_G_estimate))
+                algorithm_specific_log += f' Scales: ' + ', '.join([f'{task}: {self.scales[task]:.4f}' for task in self.scales])
+                
+                # Now continue the remaining local rounds
+                # Initialize averaged_updates
+                averaged_updates = {'rep': {}, **{task: {} for task in self.tasks}}
+                
+                # Initialize 'rep' part using state_dict
+                for key, param in {True:self.model_cuda, False:self.model}[self.boost_w_gpu]['rep'].state_dict().items():
+                    averaged_updates['rep'][key] = torch.zeros_like(param)
+    
+                # Initialize task-specific parts using state_dict
+                for task in self.tasks:
+                    for key, param in {True:self.model_cuda, False:self.model}[self.boost_w_gpu][task].state_dict().items():
+                        averaged_updates[task][key] = torch.zeros_like(param)
+    
+                for i, client in enumerate(participating_clients):
+                    updates = client.local_train(self.config,  
+                                {key:copy.deepcopy({True: self.model_cuda, False: self.model}[self.boost_w_gpu][key]) for key in self.model},
+                                 self.experiment_module, self.tasks, first_local_round=False, current_weight=self.scales)
+                    # Apply weighted updates
+                    for key in updates['rep']:
+                        averaged_updates['rep'][key] += updates['rep'][key] / len(participating_clients)
+                    for task in self.tasks:
+                        for key in updates[task]:
+                            averaged_updates[task][key] += updates[task][key] / len(participating_clients)
+                averaged_updates = normalize_updates(averaged_updates, self.tasks, self.config)
+                
+                self.aggregate_updates(model_to_aggregate = {True:self.model_cuda, False:self.model}[self.boost_w_gpu], normalized_updates=averaged_updates)
+                if self.boost_w_gpu:
+                    transfer_parameters(self.model_cuda, self.model)
+
             # Initialize an empty dictionary to collect all WandB logs
             wandb_log_data = {}
 
