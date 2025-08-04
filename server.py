@@ -388,17 +388,17 @@ class Server(object):
                         averaged_updates[task][key] = torch.zeros_like(param)
 
                 # 初始化c_global和g_global，暂时取0
-                if self.round_num == 0:
-                    self.c_global = [
-                        torch.zeros_like(param).to(device)
-                        for param in self.model['rep'].parameters()]
+                # if self.round_num == 0:
+                #     self.c_global = [
+                #         torch.zeros_like(param).to(device)
+                #         for param in self.model['rep'].parameters()]
 
-                    self.g_global = [
-                        torch.zeros_like(param).to(device)
-                        for param in self.model['rep'].parameters()]
+                #     self.g_global = [
+                #         torch.zeros_like(param).to(device)
+                #         for param in self.model['rep'].parameters()]
 
-                    self.c_local: Dict[List[torch.Tensor]] = {i:[torch.zeros_like(param).to(device)
-                        for param in self.model['rep'].parameters()] for i in range(len(participating_clients))}
+                #     self.c_local: Dict[List[torch.Tensor]] = {i:[torch.zeros_like(param).to(device)
+                #         for param in self.model['rep'].parameters()] for i in range(len(participating_clients))}
 
                 for i, client in enumerate(participating_clients):
                     updates = client.local_train(self.config,
@@ -407,9 +407,9 @@ class Server(object):
                                                   for key in self.model},
                                                  self.experiment_module, self.tasks, first_local_round=False,
                                                  current_weight=self.scales,
-                                                 c_global=self.c_global,
-                                                 g_global=self.g_global,
-                                                 c_local=self.c_local[i]
+                                                 # c_global=self.c_global,
+                                                 # g_global=self.g_global,
+                                                 # c_local=self.c_local[i]
                                                  )
                     # 更新c_local
                     # self.c_local[i] = updates['c_local']
