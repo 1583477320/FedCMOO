@@ -776,7 +776,7 @@ class Server(object):
                     else:
                         update_value = self.config['hyperparameters']['global_lr'] * normalized_updates[task][task][param_name]
                     model_to_aggregate[task].state_dict()[param_name].add_(update_value)
-        elif (self.config['algorithm'] in ['fedcmoo']) or ('fedcmoo_pref' in self.config['algorithm']) or ('fedadam' in self.config['algorithm']):
+        elif (self.config['algorithm'] in ['fedcmoo',fedadam, fedcmoo_test]) or ('fedcmoo_pref' in self.config['algorithm']):
             normalized_updates = kwargs['normalized_updates']
             # Update the 'rep' part
             for param_name in model_to_aggregate['rep'].state_dict().keys():
