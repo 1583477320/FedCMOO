@@ -55,12 +55,12 @@
 "model_device": "cuda",
 "data_seed": 1,
 "hyperparameters": {
-    "global_lr":0.01,
+    "global_lr":1,
     "local_training": {
         "optimizer": "SGD",
         "batch_size": 128,
         "nb_of_local_rounds": 10,
-        "local_lr": 0.01,
+        "local_lr": 0.3,
         "local_momentum": 0,
         "local_lr_scheduler_flag": false
     }
