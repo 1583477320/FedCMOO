@@ -388,17 +388,17 @@ class Server(object):
                         averaged_updates[task][key] = torch.zeros_like(param)
 
                 # 初始化c_global和g_global，暂时取0
-                # if self.round_num == 0:
-                #     self.c_global = [
-                #         torch.zeros_like(param).to(device)
-                #         for param in self.model['rep'].parameters()]
+                if self.round_num == 0:
+                    self.c_global = [
+                        torch.zeros_like(param).to(device)
+                        for param in self.model['rep'].parameters()]
 
-                #     self.g_global = [
-                #         torch.zeros_like(param).to(device)
-                #         for param in self.model['rep'].parameters()]
+                    self.g_global = [
+                        torch.zeros_like(param).to(device)
+                        for param in self.model['rep'].parameters()]
 
-                #     self.c_local: Dict[List[torch.Tensor]] = {i:[torch.zeros_like(param).to(device)
-                #         for param in self.model['rep'].parameters()] for i in range(len(participating_clients))}
+                    self.c_local: Dict[List[torch.Tensor]] = {i:[torch.zeros_like(param).to(device)
+                        for param in self.model['rep'].parameters()] for i in range(len(participating_clients))}
 
                 for i, client in enumerate(participating_clients):
                     updates = client.local_train(self.config,
@@ -412,7 +412,7 @@ class Server(object):
                                                  # c_local=self.c_local[i]
                                                  )
                     # 更新c_local
-                    # self.c_local[i] = updates['c_local']
+                    self.c_local[i] = updates['c_local']
 
                     # Apply weighted updates
                     for key in updates['rep']:
@@ -428,8 +428,8 @@ class Server(object):
                     transfer_parameters(self.model_cuda, self.model)
 
                 # 更新控制变量c和g
-                # c_clone = self.c_global.copy()
-                # self.c_aggregate(self.c_local, c_clone)
+                c_clone = self.c_global.copy()
+                self.c_aggregate(self.c_local, c_clone)
 
             elif self.config['algorithm'] == 'fedcmoo_test':
                 scale_updates = []
