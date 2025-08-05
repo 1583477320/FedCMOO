@@ -750,14 +750,14 @@ class Client(object):
                             avg_task = 1/len(tasks)
                             beta = config['algorithm_args'][config['algorithm']]['beta']
                             for task in tasks:
-                                # for param, grad,c_global,g_global,c_local in zip(global_model['rep'].parameters(), task_gradients[task]['rep'], kwargs['c_global'],kwargs['g_global'],kwargs['c_local']):
-                                for param, grad in zip(global_model['rep'].parameters(), task_gradients[task]['rep']):
+                                for param, grad,c_global,g_global,c_local in zip(global_model['rep'].parameters(), task_gradients[task]['rep'], kwargs['c_global'],kwargs['g_global'],kwargs['c_local']):
+                                # for param, grad in zip(global_model['rep'].parameters(), task_gradients[task]['rep']):
                                     if param.grad is None:
-                                        # param.grad = beta * (grad * current_weight[task])+avg_task * (beta * (c_global-c_local)+(1-beta) * g_global)
-                                        param.grad = grad * current_weight[task]
+                                        param.grad = beta * (grad * current_weight[task])+avg_task * (beta * (c_global-c_local)+(1-beta) * g_global)
+                                        # param.grad = grad * current_weight[task]
                                     else:
-                                        # param.grad += beta * (grad * current_weight[task])+avg_task * (beta * (c_global-c_local)+(1-beta) * g_global)
-                                        param.grad += grad * current_weight[task]
+                                        param.grad += beta * (grad * current_weight[task])+avg_task * (beta * (c_global-c_local)+(1-beta) * g_global)
+                                        # param.grad += grad * current_weight[task]
                                 temp = current_weight[task] if config['algorithm_args'][config['algorithm']][
                                     'scale_decoders'] else 1
                                 for param, grad in zip(global_model[task].parameters(), task_gradients[task]['task']):
@@ -773,21 +773,21 @@ class Client(object):
                     final_task_model = {task: model_to_dict(global_model[task]) for task in tasks}
                     [reset_gradients(global_model[t]) for t in global_model]
 
-                    # # 更新本地变量c
-                    # c_plus = []
-                    # y_delta = [(final_model[name] - initial_model[name]).to({True: device, False: model_device}[boost_w_gpu]) for name in final_model]
-                    # coef = 1 / (config['hyperparameters']['local_training']['nb_of_local_rounds'] *
-                    #             config['hyperparameters']['local_training']['local_lr'] *
-                    #             config['algorithm_args'][config['algorithm']]['beta'])
-                    # for c_l, diff, c_g,g_global in zip(kwargs['c_local'], y_delta, kwargs['c_global'], kwargs['g_global']):
-                    #     c_plus.append(c_l - c_g - coef * (g_global * (1-config['algorithm_args'][config['algorithm']]['beta']) + diff))
+                    # 更新本地变量c
+                    c_plus = []
+                    y_delta = [(final_model[name] - initial_model[name]).to({True: device, False: model_device}[boost_w_gpu]) for name in final_model]
+                    coef = 1 / (config['hyperparameters']['local_training']['nb_of_local_rounds'] *
+                                config['hyperparameters']['local_training']['local_lr'] *
+                                config['algorithm_args'][config['algorithm']]['beta'])
+                    for c_l, diff, c_g,g_global in zip(kwargs['c_local'], y_delta, kwargs['c_global'], kwargs['g_global']):
+                        c_plus.append(c_l - c_g - coef * (g_global * (1-config['algorithm_args'][config['algorithm']]['beta']) + diff))
 
-                    # c_local_update = c_plus
+                    c_local_update = c_plus
 
-                    # # 更新c_delta，即c^t_i − c^{t−1}_i
-                    # c_delta = []
-                    # for c_p, c_l in zip(c_plus, kwargs['c_local']):
-                    #     c_delta.append(c_p - c_l)
+                    # 更新c_delta，即c^t_i − c^{t−1}_i
+                    c_delta = []
+                    for c_p, c_l in zip(c_plus, kwargs['c_local']):
+                        c_delta.append(c_p - c_l)
 
                 function_return = {'rep': {
                     name: (final_model[name] - initial_model[name]).to({True: device, False: model_device}[boost_w_gpu])
@@ -795,7 +795,7 @@ class Client(object):
                     name: (final_task_model[task][name] - initial_task_model[task][name]).to(
                         {True: device, False: model_device}[boost_w_gpu]) for name in final_task_model[task]} for task
                                                  in tasks}
-                                   # , 'c_local':c_local_update, 'g_global':g_global, 'c_delta':c_delta
+                                   , 'c_local':c_local_update, 'g_global':g_global, 'c_delta':c_delta
                                   }
         elif config['algorithm'] == 'fedcmoo_test':
             current_weight = kwargs['current_weight']
