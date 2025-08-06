@@ -313,7 +313,7 @@ class Client(object):
                             [reset_gradients(global_model[t]) for t in global_model]
                             
                             # Normalize gradients if required
-                            if config['algorithm_args'][config['algorithm']]['normalize_updates']:
+                            if config['algorithm_args'][config['algorithm']]['normalize_grad']:
                                 for task in tasks:
                                     # Compute L2 norm
                                     total_norm = 0.0
