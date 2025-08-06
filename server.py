@@ -469,11 +469,12 @@ class Server(object):
                                 {key:copy.deepcopy({True: self.model_cuda, False: self.model}[self.boost_w_gpu][key]) for key in self.model},
                                  self.experiment_module, self.tasks, first_local_round=False, current_weight=self.scales)
                     # Apply weighted updates
+                    div = 1/(len(participating_clients)*self.config['nb_of_participating_clients']*self.config['hyperparameters']['local_training']['local_lr'])
                     for key in updates['rep']:
-                        averaged_updates['rep'][key] += updates['rep'][key] / len(participating_clients)
+                        averaged_updates['rep'][key] += updates['rep'][key] * div
                     for task in self.tasks:
                         for key in updates[task]:
-                            averaged_updates[task][key] += updates[task][key] / len(participating_clients)
+                            averaged_updates[task][key] += updates[task][key] * div
                 averaged_updates = normalize_updates(averaged_updates, self.tasks, self.config)
                 
                 self.aggregate_updates(model_to_aggregate = {True:self.model_cuda, False:self.model}[self.boost_w_gpu], normalized_updates=averaged_updates)
