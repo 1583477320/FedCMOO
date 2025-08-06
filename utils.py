@@ -87,7 +87,7 @@ def average_updates(all_updates, tasks, algo):
                     averaged_updates[task]['rep'][key] /= task_client_counts[task]
                 for key in averaged_updates[task][task]:
                     averaged_updates[task][task][key] /= task_client_counts[task]
-    if algo in ['fedcmoo','fedcmoo_pref','fedadam','fedcmoo_test']:
+    if algo in ['fedcmoo','fedcmoo_pref']:
         averaged_updates = {'rep': {}, **{task: {} for task in tasks}}
         client_count = len(all_updates)
 
@@ -163,7 +163,8 @@ def return_free_gpu_memory():
 def normalize_updates(updates, tasks, config):
     """Normalize the updates of each task.
     Only L2 normalization is here. """
-    normalization_type = 'L2' if config['algorithm_args'][config['algorithm']]['normalize_updates'] else None
+    normalization_type = 'L2' if config['algorithm_args'][config['algorithm']]['normalize_updates'] or config['algorithm_args'][config['algorithm']]['normalize_grad'] else None
+
     def l2_normalize(vector):
         norm = torch.norm(vector, p=2)
         if norm > 0:
@@ -217,7 +218,7 @@ def normalize_updates(updates, tasks, config):
                 normalized_updates[task][task][key] = normalized_vector[start:end].view_as(normalized_updates[task][task][key])
                 start = end
         return normalized_updates
-    elif config['algorithm'] in ['fedcmoo','fedcmoo_test'] or 'fedcmoo_pref' in config['algorithm'] or 'fedadam' in config['algorithm']:
+    elif config['algorithm'] in ['fedcmoo','fedadam'] or 'fedcmoo_pref' in config['algorithm']:
         combined_updates = []
 
         # Combine 'rep' and all task-specific updates into a single vector
