@@ -134,7 +134,7 @@ class Server(object):
                         for param in self.model['rep'].parameters()]
 
         self.c_local: Dict[List[torch.Tensor]] = {i:[torch.zeros_like(param).to(device)
-                        for param in self.model['rep'].parameters()] for i in range(len(participating_clients))}
+                        for param in self.model['rep'].parameters()] for i in range(len(self.clients)))}
 
 
         self.scales = {task: float(1/len(self.tasks)) for i, task in enumerate(self.tasks)}
