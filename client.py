@@ -795,7 +795,7 @@ class Client(object):
                     name: (final_task_model[task][name] - initial_task_model[task][name]).to(
                         {True: device, False: model_device}[boost_w_gpu]) for name in final_task_model[task]} for task
                                                  in tasks}
-                                   , 'c_local':c_local_update, 'g_global':g_global, 'c_delta':c_delta
+                                   , 'c_local':c_local_update, 'g_global':kwargs['g_global'], 'c_delta':c_delta
                                   }
         elif config['algorithm'] == 'fedcmoo_test':
             current_weight = kwargs['current_weight']
