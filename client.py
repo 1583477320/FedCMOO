@@ -682,8 +682,11 @@ class Client(object):
                                     param.grad = grad * temp
                                 else:
                                     param.grad += grad * temp
+                                    
+                        optimizer.zero_grad()
+                        [reset_gradients(global_model[t]) for t in global_model]
                         local_update_counter += 1
-
+                            
                 with torch.no_grad():
                     final_model = model_to_dict(global_model['rep'])
 
