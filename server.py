@@ -138,48 +138,49 @@ class Server(object):
         self.scales = {task: float(1 / len(self.tasks)) for i, task in enumerate(self.tasks)}
 
         # 初始化c_global和g_global，暂时取0
-        self.c_local: Dict[List[torch.Tensor]] = {i: [torch.zeros_like(param).to(device)
-                                                      for param in self.model['rep'].parameters()] for i in
-                                                  range(len(self.clients))}
+        if self.config['algorithm'] == 'fedadam':
+            self.c_local: Dict[List[torch.Tensor]] = {i: [torch.zeros_like(param).to(device)
+                                                          for param in self.model['rep'].parameters()] for i in
+                                                      range(len(self.clients))}
+    
+            for i, client in enumerate(self.clients):
+                if self.boost_w_gpu and 3 * return_free_gpu_memory() > 2 * last_free_memory + 2500:  # Use gpu_save if there is enough memory 500 MB buffer. 3x and 2x are important calculated numbers
+                    save_to_gpu = True
+                    last_free_memory = return_free_gpu_memory()
+                else:
+                    save_to_gpu = False
+                initial_model = copy.deepcopy(self.model)
+                c_local_initial= client.local_train(self.config,
+                                                            {key: copy.deepcopy(
+                                                                {True: self.model_cuda, False: self.model}[
+                                                                    self.boost_w_gpu][key]) for key in initial_model},
+                                                            self.experiment_module, self.tasks,
+                                                            first_local_round = False, initial_c_local=True, current_weight=self.scales,
+                                                            save_to_gpu=save_to_gpu)
+                # 更新c_local
+                self.c_local[i] = c_local_initial
+    
+            # 初始化 c_global
+            self.c_global = [
+                torch.zeros_like(param).to(device)
+                for param in self.model['rep'].parameters()]
+    
+            self.avg_weight = torch.tensor(
+                [
+                    1 / self.config['clients']['total']
+                    for _ in range(self.config['clients']['total'])
+                ],
+                device=device,
+            )
+            c_local_list = list(self.c_local.values())
+            for c_g, c_del in zip(self.c_global, zip(*c_local_list)):
+                c_del = torch.sum(self.avg_weight * torch.stack(c_del, dim=-1), dim=-1)
+                c_g.data += c_del
+    
+            # 初始化 g_global
+            self.g_global = self.c_global
 
-        for i, client in enumerate(self.clients):
-            if self.boost_w_gpu and 3 * return_free_gpu_memory() > 2 * last_free_memory + 2500:  # Use gpu_save if there is enough memory 500 MB buffer. 3x and 2x are important calculated numbers
-                save_to_gpu = True
-                last_free_memory = return_free_gpu_memory()
-            else:
-                save_to_gpu = False
-            initial_model = copy.deepcopy(self.model)
-            c_local_initial= client.local_train(self.config,
-                                                        {key: copy.deepcopy(
-                                                            {True: self.model_cuda, False: self.model}[
-                                                                self.boost_w_gpu][key]) for key in initial_model},
-                                                        self.experiment_module, self.tasks,
-                                                        first_local_round = False, initial_c_local=True, current_weight=self.scales,
-                                                        save_to_gpu=save_to_gpu)
-            # 更新c_local
-            self.c_local[i] = c_local_initial
-
-        # 初始化 c_global
-        self.c_global = [
-            torch.zeros_like(param).to(device)
-            for param in self.model['rep'].parameters()]
-
-        self.avg_weight = torch.tensor(
-            [
-                1 / self.config['clients']['total']
-                for _ in range(self.config['clients']['total'])
-            ],
-            device=device,
-        )
-        c_local_list = list(self.c_local.values())
-        for c_g, c_del in zip(self.c_global, zip(*c_local_list)):
-            c_del = torch.sum(self.avg_weight * torch.stack(c_del, dim=-1), dim=-1)
-            c_g.data += c_del
-
-        # 初始化 g_global
-        self.g_global = self.c_global
-
-        if self.config['algorithm'] in ['fedcmoo', 'fedcmoo_pref']:
+        if self.config['algorithm'] in ['fedcmoo','fedadam', 'fedcmoo_pref']:
             if 'randsvd' in self.config['proposed_approx_method']:
                 if 'direct' in self.config['proposed_approx_method']:
                     logging.info(
