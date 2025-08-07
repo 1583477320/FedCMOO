@@ -621,9 +621,8 @@ class Client(object):
                         G.append(torch.cat(v_j).cpu())
                     G = torch.cat([temp.reshape(1, -1) for temp in G]).T.cpu()
 
-                    # 初始化
                 function_return = (G, None)
-
+             # 初始化
             elif kwargs['initial_c_local'] == True:
                 initial_model = model_to_dict(global_model['rep'])
                 local_updates_finished_flag, local_update_counter = False, 0
@@ -683,7 +682,6 @@ class Client(object):
                                     param.grad = grad * temp
                                 else:
                                     param.grad += grad * temp
-                        optimizer.step()
                         local_update_counter += 1
 
                 with torch.no_grad():
