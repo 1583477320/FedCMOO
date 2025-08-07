@@ -313,7 +313,7 @@ class Client(object):
                             [reset_gradients(global_model[t]) for t in global_model]
                             
                             # Normalize gradients if required
-                            if config['algorithm_args'][config['algorithm']]['normalize_grad']:
+                            if config['algorithm_args'][config['algorithm']]['normalize_updates']:
                                 for task in tasks:
                                     # Compute L2 norm
                                     total_norm = 0.0
@@ -621,7 +621,77 @@ class Client(object):
                         G.append(torch.cat(v_j).cpu())
                     G = torch.cat([temp.reshape(1, -1) for temp in G]).T.cpu()
 
+                    # 初始化
                 function_return = (G, None)
+
+            elif kwargs['initial_c_local'] == True:
+                initial_model = model_to_dict(global_model['rep'])
+                local_updates_finished_flag, local_update_counter = False, 0
+                while not local_updates_finished_flag:
+                    for batch in self.dataloader:
+                        weighted_loss = 0.0
+                        optimizer.zero_grad()
+                        if local_update_counter == config['hyperparameters']['local_training'][
+                            'nb_of_local_rounds'] - 1:
+                            local_updates_finished_flag = True
+                            break
+
+                        task_gradients = {task: {'rep': [], 'task': []} for task in tasks}
+                        if device == 'cuda':
+                            torch.cuda.empty_cache()
+
+                        for task in tasks:
+                            images = experiment_module.trainLoopPreprocess(batch[0].to(
+                                device))  # if device != config['data']['trainset_device'] else batch[0])
+                            labels = batch[tasks.index(task) + 1].to(
+                                device)  # if device != config['data']['trainset_device'] else batch[tasks.index(task) + 1]
+                            rep, _ = global_model['rep'](images, None)
+                            out, _ = global_model[task](rep, None)
+                            loss = loss_fn[task](out, labels)
+                            weighted_loss += current_weight[task] * loss
+
+                            # Zero gradients for this task
+                            optimizer.zero_grad()
+
+                            # Compute gradients for the task
+                            loss.backward(retain_graph=True)
+
+                            # Store gradients for 'rep' and task model using state_dict
+                            for name, param in global_model['rep'].state_dict(keep_vars=True).items():
+                                if param.grad is not None:
+                                    # task_gradients[task]['rep'][name] = param.grad.data.clone()
+                                    task_gradients[task]['rep'].append(param.grad.data.clone())
+                            for name, param in global_model[task].state_dict(keep_vars=True).items():
+                                if param.grad is not None:
+                                    task_gradients[task]['task'].append(param.grad.data.clone())
+
+                        # Reset gradients after saving them
+                        optimizer.zero_grad()
+                        [reset_gradients(global_model[t]) for t in global_model]
+
+                        # Apply weighted gradients
+                        for task in tasks:
+                            for param, grad in zip(global_model['rep'].parameters(), task_gradients[task]['rep']):
+                                if param.grad is None:
+                                    param.grad = grad * current_weight[task]
+                                else:
+                                    param.grad += grad * current_weight[task]
+                            temp = current_weight[task] if config['algorithm_args'][config['algorithm']][
+                                'scale_decoders'] else 1
+                            for param, grad in zip(global_model[task].parameters(), task_gradients[task]['task']):
+                                if param.grad is None:
+                                    param.grad = grad * temp
+                                else:
+                                    param.grad += grad * temp
+                        optimizer.step()
+                        local_update_counter += 1
+
+                with torch.no_grad():
+                    final_model = model_to_dict(global_model['rep'])
+
+                function_return = [((final_model[name] - initial_model[name])/config['hyperparameters']['local_training'][
+                            'nb_of_local_rounds']).to({True: device, False: model_device}[boost_w_gpu]) for name in final_model]
+
             else:
                 initial_model = model_to_dict(global_model['rep'])
                 initial_task_model = {task: model_to_dict(global_model[task]) for task in tasks}
