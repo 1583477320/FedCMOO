@@ -824,12 +824,13 @@ class Client(object):
                             # Apply weighted gradients
                             avg_task = 1/len(tasks)
                             beta = config['algorithm_args'][config['algorithm']]['beta']
+                            control_momentum = config['algorithm_args'][config['algorithm']]['control_momentum']
                             for task in tasks:
                                 for param, grad,c_global,g_global,c_local in zip(global_model['rep'].parameters(), task_gradients[task]['rep'], kwargs['c_global'],kwargs['g_global'],kwargs['c_local']):
                                     # if param.grad is None:
-                                    grad.data = beta * (grad * current_weight[task])+avg_task * (beta * (c_global-c_local)+(1-beta) * g_global)
+                                    grad.data = beta * (grad * current_weight[task])+avg_task * (beta *control_momentum* (c_global-c_local)+(1-beta) * g_global)
                                     # else:
-                                    #     param.grad += beta * (grad * current_weight[task])+avg_task * (beta * (c_global-c_local)+(1-beta) * g_global)
+                                    #     param.grad += beta * (grad * current_weight[task])+avg_task * (beta *control_momentum* (c_global-c_local)+(1-beta) * g_global)
 
                             # Normalize gradients if required
                             if config['algorithm_args'][config['algorithm']]['normalize_grad']:
