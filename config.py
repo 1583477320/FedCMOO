@@ -219,8 +219,8 @@ def base_config_set(base_config_file_path, experiment, algorithm):
             d["hyperparameters"]["global_lr"] = 1.6
             d["hyperparameters"]["local_training"]["local_lr"] = 0.3
         elif algorithm == "fedadam":
-            d["hyperparameters"]["global_lr"] = 0.1
-            d["hyperparameters"]["local_training"]["local_lr"] = 0.05
+            d["hyperparameters"]["global_lr"] = 0.01
+            d["hyperparameters"]["local_training"]["local_lr"] = 0.01
             
         
     elif experiment == "MNIST_FMNIST":
