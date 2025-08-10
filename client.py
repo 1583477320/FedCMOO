@@ -861,27 +861,26 @@ class Client(object):
 
                             # Normalize gradients if required
                             if config['algorithm_args'][config['algorithm']]['normalize_grad']:
+                                total_norm = 0.0
+                                task_gradients_norm = [torch.zeros_like(param).to(device) for param in global_model['rep'].parameters()]
                                 for task in tasks:
-                                    # Compute L2 norm
-                                    total_norm = 0.0
-                                    for grad in task_gradients[task]['rep']:
-                                        total_norm += grad.norm(2).item() ** 2
-                                    if config['algorithm_args'][config['algorithm']]['count_decoders']:
-                                        for grad in task_gradients[task]['task']:
-                                            total_norm += grad.norm(2).item() ** 2
+                                    for param, grad in zip(task_gradients_norm,task_gradients[task]['rep']):
+                                        if param is None:
+                                            param = grad * current_weight[task]
+                                        else:
+                                            param += grad * current_weight[task]
+
+                                for grad in task_gradients_norm:
+                                    total_norm += grad.norm(2).item() ** 2
                                     total_norm = total_norm ** 0.5
-                                    # Normalize gradients
-                                    for grad in task_gradients[task]['rep']:
-                                        grad.div_(total_norm)
-                                    for grad in task_gradients[task]['task']:
-                                        grad.div_(total_norm)
+                                # 是否加任务端的模
 
                             for task in tasks:
                                 for param, grad in zip(global_model['rep'].parameters(), task_gradients[task]['rep']):
                                     if param.grad is None:
-                                        param.grad = grad
+                                        param.grad = grad/total_norm
                                     else:
-                                        param.grad += grad
+                                        param.grad += grad/total_norm
                                 temp = current_weight[task] if config['algorithm_args'][config['algorithm']][
                                     'scale_decoders'] else 1
                                 for param, grad in zip(global_model[task].parameters(), task_gradients[task]['task']):
