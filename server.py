@@ -22,7 +22,9 @@ import re
 from typing import Dict, List, OrderedDict
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
+seed = 42
+torch.manual_seed(seed)
+torch.cuda.manual_seed_all(seed)
 
 class Server(object):
     """Multi-objective federated learning server."""
@@ -142,7 +144,7 @@ class Server(object):
             self.c_local: Dict[List[torch.Tensor]] = {i: [torch.zeros_like(param).to(device)
                                                           for param in self.model['rep'].parameters()] for i in
                                                       range(len(self.clients))}
-    
+
             for i, client in enumerate(self.clients):
                 if self.boost_w_gpu and 3 * return_free_gpu_memory() > 2 * last_free_memory + 2500:  # Use gpu_save if there is enough memory 500 MB buffer. 3x and 2x are important calculated numbers
                     save_to_gpu = True
@@ -159,12 +161,12 @@ class Server(object):
                                                             save_to_gpu=save_to_gpu)
                 # 更新c_local
                 self.c_local[i] = c_local_initial
-    
+
             # 初始化 c_global
             self.c_global = [
                 torch.zeros_like(param).to(device)
                 for param in self.model['rep'].parameters()]
-    
+
             self.avg_weight = torch.tensor(
                 [
                     1 / self.config['clients']['total']
@@ -176,7 +178,7 @@ class Server(object):
             for c_g, c_del in zip(self.c_global, zip(*c_local_list)):
                 c_del = torch.sum(self.avg_weight * torch.stack(c_del, dim=-1), dim=-1)
                 c_g.data += c_del
-    
+
             # 初始化 g_global
             self.g_global = self.c_global
 
@@ -453,7 +455,7 @@ class Server(object):
                                                                     {True: self.model_cuda, False: self.model}[
                                                                         self.boost_w_gpu][key]) for key in self.model},
                                                                 self.experiment_module, self.tasks,
-                                                                first_local_round=True, current_weight=self.scales,
+                                                                first_local_round=True,initial_c_local=False, current_weight=self.scales,
                                                                 save_to_gpu=save_to_gpu)
                     scale_updates.append(client_scale_update)
 
@@ -495,11 +497,13 @@ class Server(object):
                     self.c_local[i] = updates['c_local']
 
                     # Apply weighted updates
+                    div = (len(participating_clients) * self.config['hyperparameters']['local_training'][
+                        'nb_of_local_rounds'] * self.config['hyperparameters']['local_training']['local_lr'])
                     for key in updates['rep']:
-                        averaged_updates['rep'][key] += updates['rep'][key] / len(participating_clients)
+                        averaged_updates['rep'][key] += (updates['rep'][key] / div)
                     for task in self.tasks:
                         for key in updates[task]:
-                            averaged_updates[task][key] += updates[task][key] / len(participating_clients)
+                            averaged_updates[task][key] += (updates[task][key] / div)
                 averaged_updates = normalize_updates(averaged_updates, self.tasks, self.config)
 
                 self.aggregate_updates(model_to_aggregate={True: self.model_cuda, False: self.model}[self.boost_w_gpu],
@@ -508,7 +512,7 @@ class Server(object):
                     transfer_parameters(self.model_cuda, self.model)
 
                 # 更新控制变量c和g
-                c_clone = self.c_global.copy()
+                c_clone = copy.deepcopy(self.c_global)
                 self.c_aggregate(self.c_local, c_clone)
 
             # Initialize an empty dictionary to collect all WandB logs
@@ -837,7 +841,7 @@ class Server(object):
                         update_value = self.config['hyperparameters']['global_lr'] * normalized_updates[task][task][
                             param_name]
                     model_to_aggregate[task].state_dict()[param_name].add_(update_value)
-        elif (self.config['algorithm'] in ['fedcmoo', 'fedadam', 'fedcmoo_test']) or (
+        elif (self.config['algorithm'] in ['fedcmoo', 'fedadam']) or (
                 'fedcmoo_pref' in self.config['algorithm']):
             normalized_updates = kwargs['normalized_updates']
             # Update the 'rep' part
