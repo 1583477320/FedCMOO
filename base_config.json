@@ -25,7 +25,7 @@
                   "fedadam":{"scale_decoders" : false,
                           "count_decoders": false ,
                           "normalize_updates" : false,
-                          "normalize_grad":false,
+                          "normalize_grad":true,
                           "scale_lr": 0.001,
                           "scale_momentum": 0,
                           "scale_n_iter": 1000,
