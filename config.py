@@ -49,6 +49,7 @@ class Config(object):
                                           'normalize_local_iters': False,
                                           "compression": False},
                                'fedcmoo': {'normalize_updates': False,
+                                           "normalize_grad":False,
                                            'count_decoders': False,
                                            'scale_decoders': True,
                                            'scale_lr': None,
