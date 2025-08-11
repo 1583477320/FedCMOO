@@ -36,7 +36,7 @@
                              "count_decoders" : false,
                              "normalize_updates" : false,
                              "normalize_local_iters" : false,
-                             "compression" : false},
+                             "compression" : false}
 },
 "experiment": "MultiMNIST",
 "exp_identifier": "v1",
