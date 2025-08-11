@@ -532,7 +532,7 @@ class Server(object):
                 client_return_device = 'cuda' if (self.config['model_device'] == 'cuda' or self.boost_w_gpu) else 'cpu'
                 # Initialize averaged_updates
                 averaged_updates = {task: {'rep': {}, task: {}} for task in self.tasks}
-                last_model_recoder = {True: self.model_cuda, False: self.model}[self.boost_w_gpu]
+                last_model_recoder = copy.deepcopy({True: self.model_cuda, False: self.model}[self.boost_w_gpu])
 
                 for task in self.tasks:
                     # Initialize the 'rep' part using state_dict
