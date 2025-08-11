@@ -178,7 +178,7 @@ def normalize_updates(updates, tasks, config):
         return vector
     if normalization_type not in ['L1', 'L2']:
         return updates
-    if config['algorithm'] in ['fsmgda']:
+    if config['algorithm'] in ['fsmgda','fsmgda_vr']:
         # # Create a deep copy of the updates to ensure the original is not modified
         normalized_updates = dict()
         for task in tasks:
