@@ -182,6 +182,18 @@ class Server(object):
             # 初始化 g_global
             self.g_global = self.c_global
 
+        # 初始化fsmgda-vr的参数
+        if self.config['algorithm'] == 'fsmgda_vr':
+            self.last_model = {True: self.model_cuda, False: self.model}[self.boost_w_gpu]
+            self.last_updates = {t: {'rep': None, t: None} for t in self.tasks}
+            for task in self.tasks:
+                initial_model = model_to_dict(self.model['rep'])
+                initial_task_model = model_to_dict(self.model[task])
+                self.last_updates[task]['rep'] = {name: (initial_model[name] - initial_model[name]).to(device) for name
+                                        in initial_model}
+                self.last_updates[task][task] = {name: (initial_task_model[name] - initial_task_model[name]).to(device)
+                                       for name in initial_task_model}
+
         if self.config['algorithm'] in ['fedcmoo','fedadam', 'fedcmoo_pref']:
             if 'randsvd' in self.config['proposed_approx_method']:
                 if 'direct' in self.config['proposed_approx_method']:
@@ -515,6 +527,76 @@ class Server(object):
                 c_clone = copy.deepcopy(self.c_global)
                 self.c_aggregate(self.c_local, c_clone)
 
+            elif self.config['algorithm'] == 'fsmgda_vr':
+
+                client_return_device = 'cuda' if (self.config['model_device'] == 'cuda' or self.boost_w_gpu) else 'cpu'
+                # Initialize averaged_updates
+                averaged_updates = {task: {'rep': {}, task: {}} for task in self.tasks}
+                last_model_recoder = {True: self.model_cuda, False: self.model}[self.boost_w_gpu]
+
+                for task in self.tasks:
+                    # Initialize the 'rep' part using state_dict
+                    for key, param in self.model['rep'].state_dict().items():
+                        averaged_updates[task]['rep'][key] = torch.zeros_like(param, device=client_return_device)
+
+                    # Initialize the task-specific part using state_dict
+                    for key, param in self.model[task].state_dict().items():
+                        averaged_updates[task][task][key] = torch.zeros_like(param, device=client_return_device)
+
+                for i, client in enumerate(participating_clients):
+                    updates = client.local_train(self.config,
+                                                 {key: copy.deepcopy(
+                                                     {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
+                                                     for key in self.model},
+                                                 self.experiment_module, self.tasks,
+                                                 last_model = self.last_model,
+                                                 last_updates = self.last_updates
+                                                 )
+                    if self.config["algorithm_args"][self.config["algorithm"]]["compression"]:
+                        compression_rate = (self.config["proposed_approx_extra_upload_d"] + 1) / len(self.tasks)
+                        if compression_rate < 1:
+                            updates = top_k_compression_dict(updates, compression_rate=compression_rate)
+                    averaged_updates = update_average(averaged_updates, updates, self.tasks,
+                                                      1 / len(participating_clients))
+
+                # Normalize updates
+                averaged_updates = normalize_updates(averaged_updates, self.tasks, self.config)
+                self.last_updates = averaged_updates
+
+                # Convert updates to vectors
+                task_vectors = []
+                for task in self.tasks:
+                    combined_vector = []
+                    if self.config['algorithm_args']['fsmgda']['count_decoders']:
+                        for key in averaged_updates[task]['rep']:
+                            combined_vector.append(averaged_updates[task]['rep'][key].view(-1))
+                        for key in averaged_updates[task][task]:
+                            combined_vector.append(averaged_updates[task][task][key].view(-1))
+                    else:
+                        for key in averaged_updates[task]['rep']:
+                            combined_vector.append(averaged_updates[task]['rep'][key].view(-1))
+                    task_vectors.append(torch.cat(combined_vector).reshape(1, -1))
+
+                # Frank-Wolfe iteration to compute scales
+                try:
+                    sol, min_norm = MinNormSolver.find_min_norm_element(task_vectors)
+                except:
+                    logging.info('\nException: MinNormSolver failed!\n')
+                    sol = [1 / len(self.tasks) for _ in self.tasks]
+                self.scales = {task: float(sol[i]) for i, task in enumerate(self.tasks)}
+
+                # Log task name and weight scale for each task
+                algorithm_specific_log += ' Scales: ' + ', '.join(
+                    [f'{task}: {self.scales[task]:.4f}' for task in self.scales])
+
+                # Aggregate updates to update the global model
+                self.aggregate_updates(model_to_aggregate={True: self.model_cuda, False: self.model}[self.boost_w_gpu],
+                                       normalized_updates=averaged_updates, scales=self.scales)
+
+                self.last_model = last_model_recoder
+                if self.boost_w_gpu:
+                    transfer_parameters(self.model_cuda, self.model)
+
             # Initialize an empty dictionary to collect all WandB logs
             wandb_log_data = {}
 
@@ -822,7 +904,7 @@ class Server(object):
             client.set_data(client_data, self.config)
 
     def aggregate_updates(self, model_to_aggregate, **kwargs):
-        if self.config['algorithm'] in ['fsmgda']:
+        if self.config['algorithm'] in ['fsmgda,fsmgda_vr']:
             # Aggregate updates for common part
             scales = kwargs['scales']
             normalized_updates = kwargs['normalized_updates']
