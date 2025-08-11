@@ -72,7 +72,7 @@ class Config(object):
                                           'count_decoders': False,
                                           'normalize_updates': False,
                                           'normalize_local_iters': False,
-                                          'compression': False
+                                          'compression': False,
                                           'beta':0.9},
                                },
             "experiment": "MultiMNIST",
