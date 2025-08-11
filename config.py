@@ -68,7 +68,7 @@ class Config(object):
                                            'scale_n_iter": 1000,
                                            'control_momentum': 1,
                                            'beta': 1},
-                               {'fsmgda': {'scale_decoders': True,
+                               {'fsmgda_vr': {'scale_decoders': True,
                                           'count_decoders': False,
                                           'normalize_updates': False,
                                           'normalize_local_iters': False,
