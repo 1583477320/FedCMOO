@@ -902,7 +902,7 @@ class Client(object):
                         {True: device, False: model_device}[boost_w_gpu]) for name in final_task_model[task]} for task
                     in tasks}, 'c_local': c_local_update, 'g_global': g_global, 'c_delta': c_delta}
 
-        if config['algorithm'] in ['fsmgda_vr']:
+        elif config['algorithm'] in ['fsmgda_vr']:
             updates = {t: {'rep': None, t: None} for t in tasks}
             for temp in updates.keys():
                 updates[temp]['rep'] = None
