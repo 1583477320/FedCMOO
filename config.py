@@ -71,7 +71,7 @@ class Config(object):
                                              "count_decoders": False,
                                              "normalize_updates": False,
                                              "compression": False,
-                                             "beta": 1}
+                                             "beta": 0.9}
                                },
             "experiment": "MultiMNIST",
             "exp_identifier": None,
@@ -95,8 +95,8 @@ class Config(object):
                 'local_training': {
                     'optimizer': 'SGD',
                     'batch_size': 32,
-                    'nb_of_local_rounds': 3,
-                    'local_lr': 0.2,
+                    'nb_of_local_rounds': 10,
+                    'local_lr': 0.3,
                     'local_momentum': 0,
                     "local_lr_scheduler_flag": False
                 }
