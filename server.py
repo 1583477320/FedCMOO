@@ -904,7 +904,7 @@ class Server(object):
             client.set_data(client_data, self.config)
 
     def aggregate_updates(self, model_to_aggregate, **kwargs):
-        if self.config['algorithm'] in ['fsmgda,fsmgda_vr']:
+        if self.config['algorithm'] in ['fsmgda','fsmgda_vr']:
             # Aggregate updates for common part
             scales = kwargs['scales']
             normalized_updates = kwargs['normalized_updates']
