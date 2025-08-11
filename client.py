@@ -973,7 +973,8 @@ class Client(object):
                     final_model = model_to_dict(global_model['rep'])
                     final_task_model = model_to_dict(global_model[task])
                     [reset_gradients(m) for m in [global_model['rep'], global_model[task]]]
-
+                    [reset_gradients(m) for m in [kwargs['last_model']['rep'], kwargs['last_model'][task]]]
+                    
                     updates[task]['rep'] = {name: (final_model[name] - initial_model[name]).to(return_device) for name
                                             in final_model}
                     updates[task][task] = {name: (final_task_model[name] - initial_task_model[name]).to(return_device)
