@@ -10,6 +10,7 @@
     "fsmgda": {
       "scale_decoders": true,
       "count_decoders": false,
+      "normalize_local_iters" : false,
       "normalize_updates": false,
       "compression": false
     },
