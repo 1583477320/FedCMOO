@@ -36,7 +36,6 @@
       "scale_momentum": 0,
       "scale_n_iter": 1000,
       "control_momentum": 1,
-      "beta": 1
     }
   },
   "experiment": "MultiMNIST",
