@@ -2,8 +2,10 @@ import json
 from collections import defaultdict
 from torch.cuda import is_available as cuda_check
 import logging
+
 logging.basicConfig(level=logging.INFO)
 import numpy as np
+
 
 class Config(object):
     """Configuration module."""
@@ -17,7 +19,7 @@ class Config(object):
                 self.config = self._convert_to_defaultdict(config_dict)
         else:
             self.config = self._convert_to_defaultdict(config_path)
-        
+
         # Initialize default values
         self.initialize_defaults()
 
@@ -38,39 +40,44 @@ class Config(object):
                 'do_test': False,
                 'test_partition': 0,
                 'data_points': 200,
-                'partition_seed':10
+                'partition_seed': 10
             },
             'algorithm': 'fsmgda',
-            'algorithm_args':{'fsmgda':{'scale_decoders' : True,
-                                         'count_decoders' : False,
-                                         'normalize_updates' : False,
-                                         'normalize_local_iters' : False,
-                                         "compression" : False},
-                              'fedcmoo':{'normalize_updates' : False,
-                                      'count_decoders': False,
-                                     'scale_decoders' : True,
-                                     'scale_lr': None,
-                                     'scale_momentum': None,
-                                     'scale_n_iter': 1},
-                              'fedcmoo_pref':{'normalize_updates' : False,
-                                      'count_decoders': False,
-                                     'scale_decoders' : True,
-                                      'preference': 'uniform',
-                                      'min_weight_multiplier': 0.2},
-                              "fedadam":{"scale_decoders" : False,
-                                          "count_decoders": False ,
-                                          "normalize_updates" : False,
-                                          "scale_lr": 0.001,
-                                          "scale_momentum": 0,
-                                          "scale_n_iter": 1000,
-                                         "control_momentum":1,
-                                          "beta": 1}
-                             },
+            'algorithm_args': {'fsmgda': {'scale_decoders': True,
+                                          'count_decoders': False,
+                                          'normalize_updates': False,
+                                          'normalize_local_iters': False,
+                                          "compression": False},
+                               'fedcmoo': {'normalize_updates': False,
+                                           'count_decoders': False,
+                                           'scale_decoders': True,
+                                           'scale_lr': None,
+                                           'scale_momentum': None,
+                                           'scale_n_iter': 1},
+                               'fedcmoo_pref': {'normalize_updates': False,
+                                                'count_decoders': False,
+                                                'scale_decoders': True,
+                                                'preference': 'uniform',
+                                                'min_weight_multiplier': 0.2},
+                               "fedadam": {"scale_decoders": False,
+                                           "count_decoders": False,
+                                           "normalize_updates": False,
+                                           "scale_lr": 0.001,
+                                           "scale_momentum": 0,
+                                           "scale_n_iter": 1000,
+                                           "control_momentum": 1,
+                                           "beta": 1},
+                               "fsmgda_vr": {"scale_decoders": True,
+                                             "count_decoders": False,
+                                             "normalize_updates": False,
+                                             "compression": False,
+                                             "beta": 1}
+                               },
             "experiment": "MultiMNIST",
             "exp_identifier": None,
             'nb_of_participating_clients': 20,
             'max_round': 50,
-            'wandb':{ 
+            'wandb': {
                 'flag': False,
                 'wandb_runname': '',
                 'wandb_project_name': 'default_project',
@@ -91,31 +98,31 @@ class Config(object):
                     'nb_of_local_rounds': 3,
                     'local_lr': 0.2,
                     'local_momentum': 0,
-                    "local_lr_scheduler_flag": False 
+                    "local_lr_scheduler_flag": False
                 }
             },
             "proposed_approx_extra_upload_d": 1,
             "proposed_approx_method": "randsvd",
             'data': {
-                'distribution': 'dirichlet_first_label', # uniform, dirichlet_first_label, dirichlet_all_labels
+                'distribution': 'dirichlet_first_label',  # uniform, dirichlet_first_label, dirichlet_all_labels
                 'test_batch_size': 400,
                 'diric_alpha': 0.3,
                 'pre_transform': True,
                 'testset_device': 'cuda',
                 'trainset_device': 'cuda',
                 'valset_device': 'cuda',
-                'val_seed' : 1,
+                'val_seed': 1,
                 'val_ratio': 0
             },
-            'metrics' :{'train_period': 1,
-                    'test_period': 3,
-                    'val_period': 0,
-                    'model_save_period': 10},
-            'reload_exp' :{'flag':False,
-                           'folder_name':'folder_name'
-                          },
-            "logging" : {"save_logs": True,
-                         "print_logs": True}
+            'metrics': {'train_period': 1,
+                        'test_period': 3,
+                        'val_period': 0,
+                        'model_save_period': 10},
+            'reload_exp': {'flag': False,
+                           'folder_name': 'folder_name'
+                           },
+            "logging": {"save_logs": True,
+                        "print_logs": True}
         }
 
         self.config = self._apply_defaults(self.config, defaults)
@@ -144,19 +151,20 @@ class Config(object):
                     tempDeviceCheck.append(f'{temp}set_device')
                     self.config['data'][f'{temp}set_device'] = 'cpu'
             if tempDeviceCheck:
-                logging.info('You selected cuda for '+" - ".join(tempDeviceCheck)+', but cuda is not available on your machine. They are changed to cpu!')
+                logging.info('You selected cuda for ' + " - ".join(
+                    tempDeviceCheck) + ', but cuda is not available on your machine. They are changed to cpu!')
         else:
             for temp in ['train', 'val', 'test']:
                 if self.config['data'][f'{temp}set_device'] == 'cuda' and self.config['data']['pre_transform'] is False:
-                    logging.info('You selected cuda for '+temp+'set and pre_transform False. pre_transform must be True with any cuda. So, it is changed to True.')
+                    logging.info(
+                        'You selected cuda for ' + temp + 'set and pre_transform False. pre_transform must be True with any cuda. So, it is changed to True.')
                     self.config['data']['pre_transform'] = True
-                
 
         # Default seeds
         if self.config['data']['val_seed'] is None:
             self.config['data']['val_seed'] = 1
         if self.config['clients']['partition_seed'] is None:
-            self.config['clients']['partition_seed'] = int(np.random.randint(1,6464))
+            self.config['clients']['partition_seed'] = int(np.random.randint(1, 6464))
 
         if self.config['wandb']['flag']:
             if not self.config['wandb']['wandb_runname'].split():
@@ -166,9 +174,10 @@ class Config(object):
 
         # Default experiment history path
 
-        if self.config['paths']['experiment_history'] is None or not bool(self.config['paths']['experiment_history'].split()):
+        if self.config['paths']['experiment_history'] is None or not bool(
+                self.config['paths']['experiment_history'].split()):
             self.config['paths']['experiment_history'] = "./experiment_history"
-        
+
 
 def base_config_set(base_config_file_path, experiment, algorithm):
     # Read the config file
@@ -192,7 +201,6 @@ def base_config_set(base_config_file_path, experiment, algorithm):
         d["nb_of_participating_clients"] = 4
         d["clients"]["data_points"] = int(40_000 / d["clients"]["total"])
 
-        
     if experiment == "CelebA":
         d["data"]['distribution'] = "dirichlet_first_label"
     elif experiment == "CelebA5":
@@ -201,14 +209,14 @@ def base_config_set(base_config_file_path, experiment, algorithm):
     # Change model device to CPU for certain conditions
     if (algorithm == "fedcmoo" or algorithm == "fedcmoo_pref") and experiment == "CelebA":
         d["model_device"] = "cpu"
-    
+
     if experiment == "CelebA":
         d["hyperparameters"]["global_lr"] = 1
         d["hyperparameters"]["local_training"]["local_lr"] = 0.2
     elif experiment == "CelebA5":
         d["hyperparameters"]["global_lr"] = 1.6
         d["hyperparameters"]["local_training"]["local_lr"] = 0.3
-        
+
     elif experiment == "MultiMNIST":
         if algorithm == "fsmgda":
             d["hyperparameters"]["global_lr"] = 2
@@ -220,10 +228,12 @@ def base_config_set(base_config_file_path, experiment, algorithm):
             d["hyperparameters"]["global_lr"] = 1.6
             d["hyperparameters"]["local_training"]["local_lr"] = 0.3
         elif algorithm == "fedadam":
+            d["hyperparameters"]["global_lr"] = 0.005
+            d["hyperparameters"]["local_training"]["local_lr"] = 0.002
+        elif algorithm == "fsmgda_vr":
             d["hyperparameters"]["global_lr"] = 1.2
             d["hyperparameters"]["local_training"]["local_lr"] = 0.5
-            
-        
+
     elif experiment == "MNIST_FMNIST":
         if algorithm == "fsmgda":
             d["hyperparameters"]["global_lr"] = 2
@@ -237,7 +247,7 @@ def base_config_set(base_config_file_path, experiment, algorithm):
         elif algorithm == "fedcmoo_test":
             d["hyperparameters"]["global_lr"] = 0.5
             d["hyperparameters"]["local_training"]["local_lr"] = 0.1
-            
+
     elif experiment == "CIFAR10_MNIST":
         d["hyperparameters"]["global_lr"] = 0.1
         d["hyperparameters"]["local_training"]["local_lr"] = 0.05
@@ -249,6 +259,7 @@ def base_config_set(base_config_file_path, experiment, algorithm):
         d["hyperparameters"]["local_training"]["local_lr"] = 0.01
 
     return d
+
 
 # Example usage
 if __name__ == "__main__":
