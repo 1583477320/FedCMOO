@@ -5,7 +5,7 @@
     "test_partition": 0,
     "data_points": 400
 },
-"algorithm": "fedadam",
+"algorithm": "fsmgda_vr",
 "algorithm_args":{"fsmgda":{"scale_decoders" : true,
                              "count_decoders" : false,
                              "normalize_updates" : false,
