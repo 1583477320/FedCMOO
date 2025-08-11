@@ -58,7 +58,7 @@ def update_average(averaged_updates, new_updates, tasks, weight):
     return averaged_updates
     
 def average_updates(all_updates, tasks, algo):
-    if algo in ['fsmgda']:
+    if algo in ['fsmgda','fsmgda_vr']:
         """Average updates for each task across all clients, accounting for tasks not calculated by all clients."""
         averaged_updates = {task: {'rep': {}, task: {}} for task in tasks}
         task_client_counts = {task: 0 for task in tasks}
