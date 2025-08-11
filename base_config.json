@@ -1,76 +1,72 @@
 {
-  "clients": {
-    "total": 100,
+"clients": {
+    "total": 10,
     "do_test": false,
     "test_partition": 0,
     "data_points": 400
-  },
-  "algorithm": "fsmgda",
-  "algorithm_args": {
-    "fsmgda": {
-      "scale_decoders": true,
-      "count_decoders": false,
-      "normalize_local_iters" : false,
-      "normalize_updates": false,
-      "compression": false
-    },
-    "fedcmoo": {
-      "scale_decoders": true,
-      "count_decoders": false,
-      "normalize_updates": false,
-      "scale_lr": 0.001,
-      "scale_momentum": 0,
-      "scale_n_iter": 1000
-    },
-    "fedcmoo_pref": {
-      "scale_decoders": true,
-      "count_decoders": false,
-      "normalize_updates": false,
-      "preference": "uniform",
-      "min_weight_multiplier": 0.2
-    },
-    "fedadam": {
-      "scale_decoders": false,
-      "count_decoders": false,
-      "normalize_updates": false,
-      "scale_lr": 0.001,
-      "scale_momentum": 0,
-      "scale_n_iter": 1000,
-      "control_momentum": 1,
-      "beta": 0.9
-    }
-  },
-  "experiment": "MultiMNIST",
-  "exp_identifier": "v1",
-  "proposed_approx_extra_upload_d": 1,
-  "proposed_approx_method": "randsvd",
-  "nb_of_participating_clients": 10,
-  "max_round": 200,
-  "wandb": {
-    "flag": false,
+},
+"algorithm": "fsmgda",
+"algorithm_args":{"fsmgda":{"scale_decoders" : true,
+                             "count_decoders" : false,
+                             "normalize_updates" : false,
+                             "compression" : false},
+                  "fedcmoo":{"scale_decoders" : false,
+                          "count_decoders": false ,
+                          "normalize_updates" : false,
+                          "normalize_grad":false,
+                          "scale_lr": 0.001,
+                          "scale_momentum": 0,
+                          "scale_n_iter": 1000},
+                  "fedcmoo_pref":{"scale_decoders" : true,
+                          "count_decoders": false,
+                          "normalize_updates" : false,
+                          "preference": "uniform",
+                          "min_weight_multiplier": 0.2},
+                  "fedadam":{"scale_decoders" : false,
+                          "count_decoders": false ,
+                          "normalize_updates" : false,
+                          "normalize_grad":true,
+                          "scale_lr": 0.001,
+                          "scale_momentum": 0,
+                          "scale_n_iter": 1000,
+                          "control_momentum" : 1,
+                          "beta": 0.9},
+                  "fsmgda_vr":{"scale_decoders" : true,
+                             "count_decoders" : false,
+                             "normalize_updates" : false,
+                             "compression" : false,
+                              "beta": 0.9}
+},
+"experiment": "MultiMNIST",
+"exp_identifier": "v1",
+"proposed_approx_extra_upload_d": 1,
+"proposed_approx_method": "randsvd",
+"nb_of_participating_clients": 10,
+"max_round": 200,
+"wandb":{"flag": false,
     "wandb_runname": "",
     "wandb_project_name": "default_project",
     "run_group": ""
-  },
-  "paths": {
+},
+"paths": {
     "data": "./data",
     "experiments": "./experiments",
     "experiment_history": " "
-  },
-  "model_device": "cuda",
-  "data_seed": 1,
-  "hyperparameters": {
-    "global_lr": 1,
+},
+"model_device": "cuda",
+"data_seed": 1,
+"hyperparameters": {
+    "global_lr":1,
     "local_training": {
-      "optimizer": "SGD",
-      "batch_size": 128,
-      "nb_of_local_rounds": 10,
-      "local_lr": 0.3,
-      "local_momentum": 0,
-      "local_lr_scheduler_flag": false
+        "optimizer": "SGD",
+        "batch_size": 128,
+        "nb_of_local_rounds": 10,
+        "local_lr": 0.3,
+        "local_momentum": 0,
+        "local_lr_scheduler_flag": false
     }
-  },
-  "data": {
+},
+"data": {
     "distribution": "dirichlet_all_labels",
     "test_batch_size": 3000,
     "diric_alpha": 0.3,
@@ -80,19 +76,16 @@
     "valset_device": "cuda",
     "val_ratio": 0.2,
     "val_seed": 1
-  },
-  "metrics": {
-    "train_period": 1,
-    "test_period": 3,
-    "val_period": 3,
-    "model_save_period": 0
-  },
-  "reload_exp": {
-    "flag": false,
-    "folder_name": "demo"
-  },
-  "logging": {
-    "save_logs": true,
-    "print_logs": true
-  }
+},
+"metrics" :{"train_period": 1,
+        "test_period": 3,
+        "val_period": 3,
+        "model_save_period": 0
+},
+"reload_exp" :{"flag":false,
+               "folder_name":"demo"
+},
+"logging" : {"save_logs": true,
+"print_logs": true
+}
 }
