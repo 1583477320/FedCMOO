@@ -63,6 +63,7 @@ class Config(object):
                                'fedadam': {'scale_decoders': False,
                                            'count_decoders': False,
                                            'normalize_updates': False,
+                                           'normalize_grad':True,
                                            'scale_lr': 0.001,
                                            'scale_momentum': 0,
                                            'scale_n_iter': 1000,
