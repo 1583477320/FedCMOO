@@ -902,13 +902,10 @@ class Client(object):
                         {True: device, False: model_device}[boost_w_gpu]) for name in final_task_model[task]} for task
                     in tasks}, 'c_local': c_local_update, 'g_global': g_global, 'c_delta': c_delta}
 
-        elif config['algorithm'] in ['fsmgda_vr']:
+        if config['algorithm'] in ['fsmgda_vr']:
             updates = {t: {'rep': None, t: None} for t in tasks}
             for temp in updates.keys():
                 updates[temp]['rep'] = None
-
-            # 保留未更新模型
-            last_model_recoder = copy.deepcopy(global_model)
 
             for task in tasks:
                 optimizer = self.get_optimizer(config, global_model)
@@ -934,7 +931,7 @@ class Client(object):
                         loss = loss_fn[task](out, labels)
                         loss.backward()
 
-                        # 计算上轮次的梯度
+                        # 计算上轮次模型的梯度
                         rep, _ = kwargs['last_model']['rep'](images, None)
                         out, _ = kwargs['last_model'][task](rep, None)
                         loss = loss_fn[task](out, labels)
@@ -987,6 +984,6 @@ class Client(object):
                     dict_to_model(global_model['rep'], initial_model)
                     dict_to_model(global_model[task], initial_task_model)
 
-            function_return = {"updates":updates,"last_model":last_model_recoder}
+            function_return = {"updates":updates}
 
         return function_return
