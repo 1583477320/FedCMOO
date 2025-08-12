@@ -59,7 +59,7 @@
     "global_lr":0.5,
     "local_training": {
         "optimizer": "SGD",
-        "batch_size": 128,
+        "batch_size": 256,
         "nb_of_local_rounds": 10,
         "local_lr": 0.1,
         "local_momentum": 0,
