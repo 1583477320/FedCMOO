@@ -550,7 +550,7 @@ class Server(object):
                                                      for key in self.model},
                                                  self.experiment_module, self.tasks,
                                                  last_model = self.last_model, # 上批次模型
-                                                 last_updates = self.last_updates
+                                                 last_updates = self.last_updates # 上批次梯度
                                                  )
                     if self.config["algorithm_args"][self.config["algorithm"]]["compression"]:
                         compression_rate = (self.config["proposed_approx_extra_upload_d"] + 1) / len(self.tasks)
@@ -562,8 +562,11 @@ class Server(object):
                 # Normalize updates
                 averaged_updates = normalize_updates(averaged_updates, self.tasks, self.config)
 
-                # 更新上批次梯度
+                # 更新上批次参数
                 self.last_updates = averaged_updates
+                self.last_model = copy.deepcopy({key: copy.deepcopy(
+                                                     {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
+                                                     for key in self.model})
 
                 # Convert updates to vectors
                 task_vectors = []
@@ -595,8 +598,6 @@ class Server(object):
                 self.aggregate_updates(model_to_aggregate={True: self.model_cuda, False: self.model}[self.boost_w_gpu],
                                        normalized_updates=averaged_updates, scales=self.scales)
 
-                # 更新上批次模型
-                self.last_model = function['last_model']
                 if self.boost_w_gpu:
                     transfer_parameters(self.model_cuda, self.model)
 
