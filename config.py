@@ -71,7 +71,7 @@ class Config(object):
                                              "count_decoders": False,
                                              "normalize_updates": False,
                                              "compression": False,
-                                             "beta": 0.9}
+                                             "beta": 0.99}
                                },
             "experiment": "MultiMNIST",
             "exp_identifier": None,
