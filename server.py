@@ -184,7 +184,7 @@ class Server(object):
 
         # 初始化fsmgda-vr的参数
         if self.config['algorithm'] == 'fsmgda_vr':
-            self.last_model = {True: self.model_cuda, False: self.model}[self.boost_w_gpu]
+            self.last_model = copy.deepcopy({True: self.model_cuda, False: self.model}[self.boost_w_gpu])
             self.last_updates = {t: {'rep': None, t: None} for t in self.tasks}
             for task in self.tasks:
                 initial_model = model_to_dict(self.model['rep'])
@@ -532,7 +532,7 @@ class Server(object):
                 client_return_device = 'cuda' if (self.config['model_device'] == 'cuda' or self.boost_w_gpu) else 'cpu'
                 # Initialize averaged_updates
                 averaged_updates = {task: {'rep': {}, task: {}} for task in self.tasks}
-                last_model_recoder = copy.deepcopy({True: self.model_cuda, False: self.model}[self.boost_w_gpu])
+                # last_model_recoder = copy.deepcopy({True: self.model_cuda, False: self.model}[self.boost_w_gpu])
 
                 for task in self.tasks:
                     # Initialize the 'rep' part using state_dict
@@ -544,23 +544,25 @@ class Server(object):
                         averaged_updates[task][task][key] = torch.zeros_like(param, device=client_return_device)
 
                 for i, client in enumerate(participating_clients):
-                    updates = client.local_train(self.config,
+                    function = client.local_train(self.config,
                                                  {key: copy.deepcopy(
                                                      {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
                                                      for key in self.model},
                                                  self.experiment_module, self.tasks,
-                                                 last_model = self.last_model,
+                                                 last_model = self.last_model, # 上批次模型
                                                  last_updates = self.last_updates
                                                  )
                     if self.config["algorithm_args"][self.config["algorithm"]]["compression"]:
                         compression_rate = (self.config["proposed_approx_extra_upload_d"] + 1) / len(self.tasks)
                         if compression_rate < 1:
-                            updates = top_k_compression_dict(updates, compression_rate=compression_rate)
-                    averaged_updates = update_average(averaged_updates, updates, self.tasks,
+                            function['updates'] = top_k_compression_dict(function['updates'], compression_rate=compression_rate)
+                    averaged_updates = update_average(averaged_updates, function['updates'], self.tasks,
                                                       1 / len(participating_clients))
 
                 # Normalize updates
                 averaged_updates = normalize_updates(averaged_updates, self.tasks, self.config)
+
+                # 更新上批次梯度
                 self.last_updates = averaged_updates
 
                 # Convert updates to vectors
@@ -593,7 +595,8 @@ class Server(object):
                 self.aggregate_updates(model_to_aggregate={True: self.model_cuda, False: self.model}[self.boost_w_gpu],
                                        normalized_updates=averaged_updates, scales=self.scales)
 
-                self.last_model = last_model_recoder
+                # 更新上批次模型
+                self.last_model = function['last_model']
                 if self.boost_w_gpu:
                     transfer_parameters(self.model_cuda, self.model)
 
