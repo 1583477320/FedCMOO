@@ -902,10 +902,13 @@ class Client(object):
                         {True: device, False: model_device}[boost_w_gpu]) for name in final_task_model[task]} for task
                     in tasks}, 'c_local': c_local_update, 'g_global': g_global, 'c_delta': c_delta}
 
-        elif config['algorithm'] in ['fsmgda_vr']:
+        if config['algorithm'] in ['fsmgda_vr']:
             updates = {t: {'rep': None, t: None} for t in tasks}
             for temp in updates.keys():
                 updates[temp]['rep'] = None
+
+            # 保留未更新模型
+            last_model_recoder = copy.deepcopy(global_model)
 
             for task in tasks:
                 optimizer = self.get_optimizer(config, global_model)
@@ -974,7 +977,7 @@ class Client(object):
                     final_task_model = model_to_dict(global_model[task])
                     [reset_gradients(m) for m in [global_model['rep'], global_model[task]]]
                     [reset_gradients(m) for m in [kwargs['last_model']['rep'], kwargs['last_model'][task]]]
-                    
+
                     updates[task]['rep'] = {name: (final_model[name] - initial_model[name]).to(return_device) for name
                                             in final_model}
                     updates[task][task] = {name: (final_task_model[name] - initial_task_model[name]).to(return_device)
@@ -984,6 +987,6 @@ class Client(object):
                     dict_to_model(global_model['rep'], initial_model)
                     dict_to_model(global_model[task], initial_task_model)
 
-            function_return = updates
+            function_return = {"updates":updates,"last_model":last_model_recoder}
 
         return function_return
