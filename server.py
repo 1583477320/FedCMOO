@@ -185,14 +185,35 @@ class Server(object):
         # 初始化fsmgda-vr的参数
         if self.config['algorithm'] == 'fsmgda_vr':
             self.last_model = copy.deepcopy({True: self.model_cuda, False: self.model}[self.boost_w_gpu])
-            self.last_updates = {t: {'rep': None, t: None} for t in self.tasks}
+
+            averaged_updates = {task: {'rep': {}, task: {}} for task in self.tasks}
+            # last_model_recoder = copy.deepcopy({True: self.model_cuda, False: self.model}[self.boost_w_gpu])
+
             for task in self.tasks:
-                initial_model = model_to_dict(self.model['rep'])
-                initial_task_model = model_to_dict(self.model[task])
-                self.last_updates[task]['rep'] = {name: (initial_model[name] - initial_model[name]).to(device) for name
-                                        in initial_model}
-                self.last_updates[task][task] = {name: (initial_task_model[name] - initial_task_model[name]).to(device)
-                                       for name in initial_task_model}
+                # Initialize the 'rep' part using state_dict
+                for key, param in self.model['rep'].state_dict().items():
+                    averaged_updates[task]['rep'][key] = torch.zeros_like(param, device=device)
+
+                # Initialize the task-specific part using state_dict
+                for key, param in self.model[task].state_dict().items():
+                    averaged_updates[task][task][key] = torch.zeros_like(param, device=device)
+            for i, client in enumerate(self.clients):
+                function = client.local_train(self.config,
+                                              {key: copy.deepcopy(
+                                                  {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
+                                                  for key in self.model},
+                                              self.experiment_module, self.tasks,
+                                              initial_d=True
+                                              )
+                if self.config["algorithm_args"][self.config["algorithm"]]["compression"]:
+                    compression_rate = (self.config["proposed_approx_extra_upload_d"] + 1) / len(self.tasks)
+                    if compression_rate < 1:
+                        function['updates'] = top_k_compression_dict(function['updates'],
+                                                                     compression_rate=compression_rate)
+                averaged_updates = update_average(averaged_updates, function['updates'], self.tasks,
+                                                  1 / len(self.clients))
+            self.last_updates = averaged_updates
+
 
         if self.config['algorithm'] in ['fedcmoo','fedadam', 'fedcmoo_pref']:
             if 'randsvd' in self.config['proposed_approx_method']:
@@ -551,7 +572,8 @@ class Server(object):
                                                  self.experiment_module, self.tasks,
                                                  last_model = self.last_model, # 上批次模型
                                                  last_updates = self.last_updates, # 上批次梯度
-                                                 T=self.round_num
+                                                T=self.round_num,
+                                                initial_d=False
                                                  )
                     if self.config["algorithm_args"][self.config["algorithm"]]["compression"]:
                         compression_rate = (self.config["proposed_approx_extra_upload_d"] + 1) / len(self.tasks)
