@@ -937,6 +937,7 @@ class Client(object):
                         loss = loss_fn[task](out, labels)
                         loss.backward()
 
+                        config['algorithm_args'][config['algorithm']]['beta']== kwargs['T']^(−2/3)
                         for param, last_param, d in zip(global_model['rep'].parameters(), kwargs['last_model']['rep'].parameters(),
                                                        list(kwargs['last_updates'][task]['rep'].values())):
                             param.grad = param.grad + (
