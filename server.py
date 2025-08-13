@@ -550,7 +550,8 @@ class Server(object):
                                                      for key in self.model},
                                                  self.experiment_module, self.tasks,
                                                  last_model = self.last_model, # 上批次模型
-                                                 last_updates = self.last_updates # 上批次梯度
+                                                 last_updates = self.last_updates, # 上批次梯度
+                                                 T=self.round_num
                                                  )
                     if self.config["algorithm_args"][self.config["algorithm"]]["compression"]:
                         compression_rate = (self.config["proposed_approx_extra_upload_d"] + 1) / len(self.tasks)
