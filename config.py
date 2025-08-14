@@ -245,7 +245,7 @@ def base_config_set(base_config_file_path, experiment, algorithm):
             d["hyperparameters"]["global_lr"] = 1.6
             d["hyperparameters"]["local_training"]["local_lr"] = 0.3
         elif algorithm == "fedcmoo_test":
-            d["hyperparameters"]["global_lr"] = 0.8
+            d["hyperparameters"]["global_lr"] = 1.2
             d["hyperparameters"]["local_training"]["local_lr"] = 0.1
 
     elif experiment == "CIFAR10_MNIST":
