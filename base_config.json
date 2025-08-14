@@ -33,7 +33,7 @@
                           "beta": 0.9},
                   "fsmgda_vr":{"scale_decoders" : true,
                              "count_decoders" : false,
-                             "normalize_updates" : false,
+                             "normalize_updates" : true,
                              "compression" : false,
                               "beta": 0.97}
 },
