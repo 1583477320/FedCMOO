@@ -1009,7 +1009,7 @@ class Client(object):
                             loss = loss_fn[task](out, labels)
                             loss.backward()
 
-                            # config['algorithm_args'][config['algorithm']]['beta'] == 1 / ((kwargs['T'] + 1) ** (2 / 3))
+                            config['algorithm_args'][config['algorithm']]['beta'] == 1 / ((kwargs['T'] + 1) ** (2 / 3))
                             for param, last_param, d in zip(global_model['rep'].parameters(),
                                                             kwargs['last_model']['rep'].parameters(),
                                                             list(kwargs['last_updates'][task]['rep'].values())):
