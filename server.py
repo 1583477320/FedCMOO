@@ -22,7 +22,7 @@ import re
 from typing import Dict, List, OrderedDict
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-seed = 42
+seed = 3407
 torch.manual_seed(seed)
 torch.cuda.manual_seed_all(seed)
 
