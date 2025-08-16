@@ -72,7 +72,7 @@ class Config(object):
                                              "normalize_updates": False,
                                              "compression": False,
                                              "beta": 0.99,
-                                             "lipschitz":0.1}}
+                                             "lipschitz":0.1}
                                },
             "experiment": "MultiMNIST",
             "exp_identifier": None,
@@ -231,9 +231,9 @@ def base_config_set(base_config_file_path, experiment, algorithm):
         elif algorithm == "fedadam":
             d["hyperparameters"]["global_lr"] = 0.005
             d["hyperparameters"]["local_training"]["local_lr"] = 0.002
-        elif algorithm == "fsmgda_vr":
-            d["hyperparameters"]["global_lr"] = 1.4
-            d["hyperparameters"]["local_training"]["local_lr"] = 0.15
+        # elif algorithm == "fsmgda_vr":
+        #     d["hyperparameters"]["global_lr"] = 1.4
+        #     d["hyperparameters"]["local_training"]["local_lr"] = 0.15
 
     elif experiment == "MNIST_FMNIST":
         if algorithm == "fsmgda":
