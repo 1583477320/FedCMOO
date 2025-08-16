@@ -556,8 +556,8 @@ class Server(object):
                 L = self.config['algorithm_args']['fsmgda_vr']['lipschitz']
                 beta = self.config['algorithm_args'][self.config['algorithm']]['beta']
                 
-                config['hyperparameters']['global_lr'] = min(1/(2*L), math.sqrt(beta * K * M / (54 * L**2)))  # 学习率
-                config['hyperparameters']['local_training']['local_lr'] = 0.01 * beta**(3/4) / (K * L)  # 本地学习率
+                self.config['hyperparameters']['global_lr'] = min(1/(2*L), math.sqrt(beta * K * M / (54 * L**2)))  # 学习率
+                self.config['hyperparameters']['local_training']['local_lr'] = 0.01 * beta**(3/4) / (K * L)  # 本地学习率
 
                 client_return_device = 'cuda' if (self.config['model_device'] == 'cuda' or self.boost_w_gpu) else 'cpu'
                 # Initialize averaged_updates
