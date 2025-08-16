@@ -549,12 +549,12 @@ class Server(object):
                 self.c_aggregate(self.c_local, c_clone)
 
             elif self.config['algorithm'] == 'fsmgda_vr':
-                self.config['algorithm_args'][config['algorithm']]['beta'] == 1 / ((self.round_num + 1) ** (2 / 3))
+                self.config['algorithm_args'][self.config['algorithm']]['beta'] == 1 / ((self.round_num + 1) ** (2 / 3))
 
                 K = self.config['hyperparameters']['local_training']['nb_of_local_rounds']
                 M = len(participating_clients)
                 L = self.config['algorithm_args']['fsmgda_vr']['lipschitz']
-                beta = config['algorithm_args'][config['algorithm']]['beta']
+                beta = config['algorithm_args'][self.config['algorithm']]['beta']
                 
                 config['hyperparameters']['global_lr'] = min(1/(2*L), math.sqrt(beta * K * M / (54 * L**2)))  # 学习率
                 config['hyperparameters']['local_training']['local_lr'] = 0.01 * beta**(3/4) / (K * L)  # 本地学习率
