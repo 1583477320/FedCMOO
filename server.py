@@ -197,21 +197,21 @@ class Server(object):
                 # Initialize the task-specific part using state_dict
                 for key, param in self.model[task].state_dict().items():
                     averaged_updates[task][task][key] = torch.zeros_like(param, device=device)
-            for i, client in enumerate(self.clients):
-                function = client.local_train(self.config,
-                                              {key: copy.deepcopy(
-                                                  {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
-                                                  for key in self.model},
-                                              self.experiment_module, self.tasks,
-                                              initial_d=True
-                                              )
-                if self.config["algorithm_args"][self.config["algorithm"]]["compression"]:
-                    compression_rate = (self.config["proposed_approx_extra_upload_d"] + 1) / len(self.tasks)
-                    if compression_rate < 1:
-                        function['updates'] = top_k_compression_dict(function['updates'],
-                                                                     compression_rate=compression_rate)
-                averaged_updates = update_average(averaged_updates, function['updates'], self.tasks,
-                                                  1 / len(self.clients))
+            # for i, client in enumerate(self.clients):
+            #     function = client.local_train(self.config,
+            #                                   {key: copy.deepcopy(
+            #                                       {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
+            #                                       for key in self.model},
+            #                                   self.experiment_module, self.tasks,
+            #                                   initial_d=True
+            #                                   )
+            #     if self.config["algorithm_args"][self.config["algorithm"]]["compression"]:
+            #         compression_rate = (self.config["proposed_approx_extra_upload_d"] + 1) / len(self.tasks)
+            #         if compression_rate < 1:
+            #             function['updates'] = top_k_compression_dict(function['updates'],
+            #                                                          compression_rate=compression_rate)
+            #     averaged_updates = update_average(averaged_updates, function['updates'], self.tasks,
+            #                                       1 / len(self.clients))
             self.last_updates = averaged_updates
 
 
