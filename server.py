@@ -549,6 +549,15 @@ class Server(object):
                 self.c_aggregate(self.c_local, c_clone)
 
             elif self.config['algorithm'] == 'fsmgda_vr':
+                config['algorithm_args'][config['algorithm']]['beta'] == 1 / ((self.round_num + 1) ** (2 / 3))
+
+                K = config['hyperparameters']['local_training']['nb_of_local_rounds']
+                M = len(participating_clients)
+                L = config['algorithm_args']['fsmgda_vr']['lipschitz']
+                beta = config['algorithm_args'][config['algorithm']]['beta']
+                
+                config['hyperparameters']['global_lr'] = min(1/(2*L), math.sqrt(beta * K * M / (54 * L**2)))  # 学习率
+                config['hyperparameters']['local_training']['local_lr'] = 0.01 * beta**(3/4) / (K * L)  # 本地学习率
 
                 client_return_device = 'cuda' if (self.config['model_device'] == 'cuda' or self.boost_w_gpu) else 'cpu'
                 # Initialize averaged_updates
@@ -572,7 +581,6 @@ class Server(object):
                                                  self.experiment_module, self.tasks,
                                                  last_model = self.last_model, # 上批次模型
                                                  last_updates = self.last_updates, # 上批次梯度
-                                                T=self.round_num,
                                                 initial_d=False
                                                  )
                     if self.config["algorithm_args"][self.config["algorithm"]]["compression"]:
