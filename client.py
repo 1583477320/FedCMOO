@@ -978,10 +978,12 @@ class Client(object):
                 updates = {t: {'rep': None, t: None} for t in tasks}
                 for temp in updates.keys():
                     updates[temp]['rep'] = None
-
+                model_params = []
+                for task, m in global_model.items():
+                    model_params += list(m.parameters())
                 for task in tasks:
                     optimizer_sto = StormOptimizer(
-                            global_model.parameters(),
+                            model_params,
                             lr=0.3,           # 初始值：0.1-1.0 (比SGD大)
                             g_max=0.2,         # 初始值：0.1-0.5 (观察梯度统计)
                             momentum=50.0,     # 初始值：30-100 (复杂问题增大)
