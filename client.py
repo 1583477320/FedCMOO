@@ -7,6 +7,7 @@ from torch.utils.data import TensorDataset
 
 import time
 from utils import *
+from optimizer import StormOptimizer
 import copy
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -979,7 +980,13 @@ class Client(object):
                     updates[temp]['rep'] = None
 
                 for task in tasks:
-                    optimizer = self.get_optimizer(config, global_model)
+                    optimizer_sto = StormOptimizer(
+                            model.parameters(),
+                            lr=0.3,           # 初始值：0.1-1.0 (比SGD大)
+                            g_max=0.2,         # 初始值：0.1-0.5 (观察梯度统计)
+                            momentum=50.0,     # 初始值：30-100 (复杂问题增大)
+                            eta=5.0            # 初始值：5-20 (减小可提高初始学习率)
+                        )
                     initial_model = model_to_dict(global_model['rep'])
                     initial_task_model = model_to_dict(global_model[task])
 
@@ -987,42 +994,55 @@ class Client(object):
                     local_updates_finished_flag = False
                     while not local_updates_finished_flag:
                         for batch in self.dataloader:
-                            optimizer.zero_grad()
                             if local_update_counter == config['hyperparameters']['local_training'][
                                 'nb_of_local_rounds']:
                                 local_updates_finished_flag = True
                                 break
 
-                            images = experiment_module.trainLoopPreprocess(
-                                batch[0].to(device))  # if device != config['data']['trainset_device'] else batch[0])
-                            labels = batch[tasks.index(task) + 1].to(
-                                device)  # if device != config['data']['trainset_device'] else batch[tasks.index(task) + 1]
+                            # optimizer.zero_grad()
+                            # images = experiment_module.trainLoopPreprocess(
+                            #     batch[0].to(device))  # if device != config['data']['trainset_device'] else batch[0])
+                            # labels = batch[tasks.index(task) + 1].to(
+                            #     device)  # if device != config['data']['trainset_device'] else batch[tasks.index(task) + 1]
 
-                            rep, _ = global_model['rep'](images, None)
-                            out, _ = global_model[task](rep, None)
-                            loss = loss_fn[task](out, labels)
-                            loss.backward()
+                            # rep, _ = global_model['rep'](images, None)
+                            # out, _ = global_model[task](rep, None)
+                            # loss = loss_fn[task](out, labels)
+                            # loss.backward()
 
-                            # 计算上轮次模型的梯度
-                            rep, _ = kwargs['last_model']['rep'](images, None)
-                            out, _ = kwargs['last_model'][task](rep, None)
-                            loss = loss_fn[task](out, labels)
-                            loss.backward()
+                            def closure():
+                                optimizer.zero_grad()
+                                images = experiment_module.trainLoopPreprocess(
+                                    batch[0].to(device))  # if device != config['data']['trainset_device'] else batch[0])
+                                labels = batch[tasks.index(task) + 1].to(
+                                    device)  # if device != config['data']['trainset_device'] else batch[tasks.index(task) + 1]
+    
+                                rep, _ = global_model['rep'](images, None)
+                                out, _ = global_model[task](rep, None)
+                                loss = loss_fn[task](out, labels)
+                                loss.backward()
+                                return loss
+
+                            # # 计算上轮次模型的梯度
+                            # rep, _ = kwargs['last_model']['rep'](images, None)
+                            # out, _ = kwargs['last_model'][task](rep, None)
+                            # loss = loss_fn[task](out, labels)
+                            # loss.backward()
 
                             # config['algorithm_args'][config['algorithm']]['beta'] == 1 / ((kwargs['T'] + 1) ** (2 / 3))
-                            for param, last_param, d in zip(global_model['rep'].parameters(),
-                                                            kwargs['last_model']['rep'].parameters(),
-                                                            list(kwargs['last_updates'][task]['rep'].values())):
-                                param.grad = param.grad + (
-                                        1 - config['algorithm_args'][config['algorithm']]['beta']) * (
-                                                         d - last_param.grad)
+                            # for param, last_param, d in zip(global_model['rep'].parameters(),
+                            #                                 kwargs['last_model']['rep'].parameters(),
+                            #                                 list(kwargs['last_updates'][task]['rep'].values())):
+                            #     param.grad = param.grad + (
+                            #             1 - config['algorithm_args'][config['algorithm']]['beta']) * (
+                            #                              d - last_param.grad)
 
-                            for param, last_param, d in zip(global_model[task].parameters(),
-                                                            kwargs['last_model'][task].parameters(),
-                                                            list(kwargs['last_updates'][task][task].values())):
-                                param.grad = param.grad + (
-                                        1 - config['algorithm_args'][config['algorithm']]['beta']) * (
-                                                         d - last_param.grad)
+                            # for param, last_param, d in zip(global_model[task].parameters(),
+                            #                                 kwargs['last_model'][task].parameters(),
+                            #                                 list(kwargs['last_updates'][task][task].values())):
+                            #     param.grad = param.grad + (
+                            #             1 - config['algorithm_args'][config['algorithm']]['beta']) * (
+                            #                              d - last_param.grad)
 
                             # Normalize gradients if required
                             if config['algorithm_args'][config['algorithm']]['normalize_local_iters']:
@@ -1043,7 +1063,7 @@ class Client(object):
                                     if param.grad is not None:
                                         param.grad.data.div_(total_norm)
 
-                            optimizer.step()
+                            optimizer.step(closure)
                             local_update_counter += 1
 
                     with torch.no_grad():
