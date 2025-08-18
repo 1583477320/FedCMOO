@@ -984,10 +984,10 @@ class Client(object):
                 for task in tasks:
                     optimizer_sto = StormOptimizer(
                                     model_params,
-                                    lr=0.1,           # 初始值：0.1-1.0 (比SGD大)
-                                    g_max=0.2,         # 初始值：0.1-0.5 (观察梯度统计)
-                                    momentum=50.0,     # 初始值：30-100 (复杂问题增大)
-                                    eta=5.0            # 初始值：5-20 (减小可提高初始学习率)
+                                    lr=0.1, 
+                                    g_max=0.1, 
+                                    momentum=100.0, 
+                                    eta=10.0
                                 )
                     initial_model = model_to_dict(global_model['rep'])
                     initial_task_model = model_to_dict(global_model[task])
