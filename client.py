@@ -981,7 +981,7 @@ class Client(object):
 
                 for task in tasks:
                     optimizer_sto = StormOptimizer(
-                            model.parameters(),
+                            global_model.parameters(),
                             lr=0.3,           # 初始值：0.1-1.0 (比SGD大)
                             g_max=0.2,         # 初始值：0.1-0.5 (观察梯度统计)
                             momentum=50.0,     # 初始值：30-100 (复杂问题增大)
