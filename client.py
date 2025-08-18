@@ -904,7 +904,7 @@ class Client(object):
                         {True: device, False: model_device}[boost_w_gpu]) for name in final_task_model[task]} for task
                     in tasks}, 'c_local': c_local_update, 'g_global': g_global, 'c_delta': c_delta}
 
-        if config['algorithm'] in ['fsmgda_vr']:
+        elif config['algorithm'] in ['fsmgda_vr']:
             if kwargs['initial_d'] == True:
                 updates = {t: {'rep': {name: None for name in model_to_dict(global_model['rep'])},
                                t: {name: None for name in model_to_dict(global_model[t])}} for t in tasks}
@@ -1065,7 +1065,7 @@ class Client(object):
                                     if param.grad is not None:
                                         param.grad.data.div_(total_norm)
 
-                            optimizer.step(closure)
+                            optimizer_sto.step(closure)
                             local_update_counter += 1
 
                     with torch.no_grad():
