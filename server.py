@@ -22,9 +22,10 @@ import re
 from typing import Dict, List, OrderedDict
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-seed = 3407
+seed = 42
 torch.manual_seed(seed)
 torch.cuda.manual_seed_all(seed)
+
 
 class Server(object):
     """Multi-objective federated learning server."""
@@ -125,14 +126,14 @@ class Server(object):
             logging.info(f'Training will be resumed from round {self.metrics.current_round}')
             if self.config["hyperparameters"]["local_training"]["local_lr_scheduler_flag"]:  # LR scheduler
                 self.config["hyperparameters"]["local_training"]["initial_local_lr"] *= (
-                            0.5 ** (self.metrics.current_round // (self.config['max_round'] // 5)))
+                        0.5 ** (self.metrics.current_round // (self.config['max_round'] // 5)))
 
         # Get tasks
         self.tasks = self.experiment_module.get_tasks()
 
         if self.config['algorithm'] == 'fedcmoo_pref':
             self.preference = preference = np.array([1 for _ in self.tasks]) if \
-            self.config['algorithm_args'][self.config['algorithm']]['preference'] == 'uniform' else np.array(
+                self.config['algorithm_args'][self.config['algorithm']]['preference'] == 'uniform' else np.array(
                 self.config['algorithm_args'][self.config['algorithm']]['preference'])
             logging.info(f"The preference is: " + ', '.join(
                 [f'{self.tasks[i]}: {temp:.4f}' for i, temp in enumerate(preference)]))
@@ -152,13 +153,14 @@ class Server(object):
                 else:
                     save_to_gpu = False
                 initial_model = copy.deepcopy(self.model)
-                c_local_initial= client.local_train(self.config,
-                                                            {key: copy.deepcopy(
-                                                                {True: self.model_cuda, False: self.model}[
-                                                                    self.boost_w_gpu][key]) for key in initial_model},
-                                                            self.experiment_module, self.tasks,
-                                                            first_local_round = False, initial_c_local=True, current_weight=self.scales,
-                                                            save_to_gpu=save_to_gpu)
+                c_local_initial = client.local_train(self.config,
+                                                     {key: copy.deepcopy(
+                                                         {True: self.model_cuda, False: self.model}[
+                                                             self.boost_w_gpu][key]) for key in initial_model},
+                                                     self.experiment_module, self.tasks,
+                                                     first_local_round=False, initial_c_local=True,
+                                                     current_weight=self.scales,
+                                                     save_to_gpu=save_to_gpu)
                 # 更新c_local
                 self.c_local[i] = c_local_initial
 
@@ -197,25 +199,24 @@ class Server(object):
                 # Initialize the task-specific part using state_dict
                 for key, param in self.model[task].state_dict().items():
                     averaged_updates[task][task][key] = torch.zeros_like(param, device=device)
-            # for i, client in enumerate(self.clients):
-            #     function = client.local_train(self.config,
-            #                                   {key: copy.deepcopy(
-            #                                       {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
-            #                                       for key in self.model},
-            #                                   self.experiment_module, self.tasks,
-            #                                   initial_d=True
-            #                                   )
-            #     if self.config["algorithm_args"][self.config["algorithm"]]["compression"]:
-            #         compression_rate = (self.config["proposed_approx_extra_upload_d"] + 1) / len(self.tasks)
-            #         if compression_rate < 1:
-            #             function['updates'] = top_k_compression_dict(function['updates'],
-            #                                                          compression_rate=compression_rate)
-            #     averaged_updates = update_average(averaged_updates, function['updates'], self.tasks,
-            #                                       1 / len(self.clients))
+            for i, client in enumerate(self.clients):
+                function = client.local_train(self.config,
+                                              {key: copy.deepcopy(
+                                                  {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
+                                                  for key in self.model},
+                                              self.experiment_module, self.tasks,
+                                              initial_d=True
+                                              )
+                if self.config["algorithm_args"][self.config["algorithm"]]["compression"]:
+                    compression_rate = (self.config["proposed_approx_extra_upload_d"] + 1) / len(self.tasks)
+                    if compression_rate < 1:
+                        function['updates'] = top_k_compression_dict(function['updates'],
+                                                                     compression_rate=compression_rate)
+                averaged_updates = update_average(averaged_updates, function['updates'], self.tasks,
+                                                  1 / len(self.clients))
             self.last_updates = averaged_updates
 
-
-        if self.config['algorithm'] in ['fedcmoo','fedadam', 'fedcmoo_pref']:
+        if self.config['algorithm'] in ['fedcmoo', 'fedadam', 'fedcmoo_pref']:
             if 'randsvd' in self.config['proposed_approx_method']:
                 if 'direct' in self.config['proposed_approx_method']:
                     logging.info(
@@ -286,7 +287,7 @@ class Server(object):
                     updates = client.local_train(self.config,
                                                  {key: copy.deepcopy(
                                                      {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
-                                                  for key in self.model},
+                                                     for key in self.model},
                                                  self.experiment_module, self.tasks)
                     if self.config["algorithm_args"][self.config["algorithm"]]["compression"]:
                         compression_rate = (self.config["proposed_approx_extra_upload_d"] + 1) / len(self.tasks)
@@ -344,7 +345,7 @@ class Server(object):
                                                                     {True: self.model_cuda, False: self.model}[
                                                                         self.boost_w_gpu][key]) for key in self.model},
                                                                 self.experiment_module, self.tasks,
-                                                                first_local_round=True,current_weight=self.scales,
+                                                                first_local_round=True, current_weight=self.scales,
                                                                 save_to_gpu=save_to_gpu)
                     scale_updates.append(client_scale_update)
 
@@ -375,7 +376,7 @@ class Server(object):
                     updates = client.local_train(self.config,
                                                  {key: copy.deepcopy(
                                                      {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
-                                                  for key in self.model},
+                                                     for key in self.model},
                                                  self.experiment_module, self.tasks, first_local_round=False,
                                                  current_weight=self.scales)
                     # Apply weighted updates
@@ -458,7 +459,7 @@ class Server(object):
                     updates = client.local_train(self.config,
                                                  {key: copy.deepcopy(
                                                      {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
-                                                  for key in self.model},
+                                                     for key in self.model},
                                                  self.experiment_module, self.tasks, first_local_round=False,
                                                  current_weight=self.scales)
                     # Apply weighted updates
@@ -488,7 +489,8 @@ class Server(object):
                                                                     {True: self.model_cuda, False: self.model}[
                                                                         self.boost_w_gpu][key]) for key in self.model},
                                                                 self.experiment_module, self.tasks,
-                                                                first_local_round=True,initial_c_local=False, current_weight=self.scales,
+                                                                first_local_round=True, initial_c_local=False,
+                                                                current_weight=self.scales,
                                                                 save_to_gpu=save_to_gpu)
                     scale_updates.append(client_scale_update)
 
@@ -520,7 +522,8 @@ class Server(object):
                                                  {key: copy.deepcopy(
                                                      {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
                                                      for key in self.model},
-                                                 self.experiment_module, self.tasks, first_local_round=False,initial_c_local=False,
+                                                 self.experiment_module, self.tasks, first_local_round=False,
+                                                 initial_c_local=False,
                                                  current_weight=self.scales,
                                                  c_global=self.c_global,
                                                  g_global=self.g_global,
@@ -549,88 +552,100 @@ class Server(object):
                 self.c_aggregate(self.c_local, c_clone)
 
             elif self.config['algorithm'] == 'fsmgda_vr':
-                self.config['algorithm_args'][self.config['algorithm']]['beta'] == 1 / ((self.round_num + 1) ** (2 / 3))
-
-                K = self.config['hyperparameters']['local_training']['nb_of_local_rounds']
-                M = len(participating_clients)
-                L = self.config['algorithm_args']['fsmgda_vr']['lipschitz']
-                beta = self.config['algorithm_args'][self.config['algorithm']]['beta']
-                
-                self.config['hyperparameters']['global_lr'] = min(1/(2*L), math.sqrt(beta * K * M / (54 * L**2)))  # 学习率
-                self.config['hyperparameters']['local_training']['local_lr'] = 0.01 * beta**(3/4) / (K * L)  # 本地学习率
 
                 client_return_device = 'cuda' if (self.config['model_device'] == 'cuda' or self.boost_w_gpu) else 'cpu'
-                # Initialize averaged_updates
-                averaged_updates = {task: {'rep': {}, task: {}} for task in self.tasks}
-                # last_model_recoder = copy.deepcopy({True: self.model_cuda, False: self.model}[self.boost_w_gpu])
+                # Step 1. 初始化累计器 (zeros)，用于存放客户端的梯度更新
 
-                for task in self.tasks:
-                    # Initialize the 'rep' part using state_dict
-                    for key, param in self.model['rep'].state_dict().items():
-                        averaged_updates[task]['rep'][key] = torch.zeros_like(param, device=client_return_device)
+                def init_zero_updates(model, tasks, device):
+                    updates = {task: {'rep': {}, task: {}} for task in tasks}
+                    for task in tasks:
+                        for key, param in model['rep'].state_dict().items():
+                            updates[task]['rep'][key] = torch.zeros_like(param, device=device)
+                        for key, param in model[task].state_dict().items():
+                            updates[task][task][key] = torch.zeros_like(param, device=device)
+                    return updates
 
-                    # Initialize the task-specific part using state_dict
-                    for key, param in self.model[task].state_dict().items():
-                        averaged_updates[task][task][key] = torch.zeros_like(param, device=client_return_device)
+                averaged_updates = init_zero_updates(self.model, self.tasks, device=client_return_device)
 
-                for i, client in enumerate(participating_clients):
-                    function = client.local_train(self.config,
-                                                 {key: copy.deepcopy(
-                                                     {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
-                                                     for key in self.model},
-                                                 self.experiment_module, self.tasks,
-                                                 last_model = self.last_model, # 上批次模型
-                                                 last_updates = self.last_updates, # 上批次梯度
-                                                initial_d=False
-                                                 )
+                # Step 2. 客户端本地更新 (基于 x_t, x_{t-1}, d_{t-1})
+                broadcast_model = {True: self.model_cuda, False: self.model}[self.boost_w_gpu]
+                broadcast_model = {k: copy.deepcopy(broadcast_model[k]) for k in broadcast_model}
+
+                for client in participating_clients:
+                    out = client.local_train(
+                        self.config,
+                        broadcast_model,  # x_t
+                        self.experiment_module,
+                        self.tasks,
+                        last_model=self.last_model,  # x_{t-1}
+                        last_updates=self.last_updates,  # d_{t-1}
+                        T=self.round_num,
+                        initial_d=False
+                    )
+
+                    # 可选：Top-k 压缩
+
                     if self.config["algorithm_args"][self.config["algorithm"]]["compression"]:
                         compression_rate = (self.config["proposed_approx_extra_upload_d"] + 1) / len(self.tasks)
                         if compression_rate < 1:
-                            function['updates'] = top_k_compression_dict(function['updates'], compression_rate=compression_rate)
-                    averaged_updates = update_average(averaged_updates, function['updates'], self.tasks,
-                                                      1 / len(participating_clients))
+                            out['updates'] = top_k_compression_dict(out['updates'], compression_rate=compression_rate)
 
-                # Normalize updates
+                    # 加入平均器
+                    averaged_updates = update_average(averaged_updates, out['updates'], self.tasks,
+
+                                                      1.0 / len(participating_clients))
+                # Step 3. 聚合 + MinNorm 求解 λ
                 averaged_updates = normalize_updates(averaged_updates, self.tasks, self.config)
 
-                # 更新上批次参数
-                self.last_updates = averaged_updates
-                self.last_model = copy.deepcopy({key: copy.deepcopy(
-                                                     {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
-                                                     for key in self.model})
+                def build_task_vectors(averaged_updates, model, tasks, config):
+                    """把每个任务的 rep + decoder 梯度拼接成一个向量"""
+                    task_vectors = []
 
-                # Convert updates to vectors
-                task_vectors = []
-                for task in self.tasks:
-                    combined_vector = []
-                    if self.config['algorithm_args']['fsmgda']['count_decoders']:
-                        for key in averaged_updates[task]['rep']:
-                            combined_vector.append(averaged_updates[task]['rep'][key].view(-1))
-                        for key in averaged_updates[task][task]:
-                            combined_vector.append(averaged_updates[task][task][key].view(-1))
-                    else:
-                        for key in averaged_updates[task]['rep']:
-                            combined_vector.append(averaged_updates[task]['rep'][key].view(-1))
-                    task_vectors.append(torch.cat(combined_vector).reshape(1, -1))
+                    for task in tasks:
+                        combined_vector = []
+                        if config['algorithm_args']['fsmgda']['count_decoders']:
 
-                # Frank-Wolfe iteration to compute scales
+                            for key in averaged_updates[task]['rep']:
+                                combined_vector.append(averaged_updates[task]['rep'][key].view(-1))
+
+                            for key in averaged_updates[task][task]:
+                                combined_vector.append(averaged_updates[task][task][key].view(-1))
+
+                        else:
+                            for key in averaged_updates[task]['rep']:
+                                combined_vector.append(averaged_updates[task]['rep'][key].view(-1))
+                        task_vectors.append(torch.cat(combined_vector).reshape(1, -1))
+
+                    return task_vectors
+
+                task_vectors = build_task_vectors(averaged_updates, self.model, self.tasks, self.config)
+
                 try:
-                    sol, min_norm = MinNormSolver.find_min_norm_element(task_vectors)
+                    sol, _ = MinNormSolver.find_min_norm_element(task_vectors)
                 except:
                     logging.info('\nException: MinNormSolver failed!\n')
                     sol = [1 / len(self.tasks) for _ in self.tasks]
                 self.scales = {task: float(sol[i]) for i, task in enumerate(self.tasks)}
 
-                # Log task name and weight scale for each task
-                algorithm_specific_log += ' Scales: ' + ', '.join(
-                    [f'{task}: {self.scales[task]:.4f}' for task in self.scales])
+                # Step 4. 保存 last_model (聚合前的全局模型 x_t),更新 last_updates (d_t)
 
-                # Aggregate updates to update the global model
-                self.aggregate_updates(model_to_aggregate={True: self.model_cuda, False: self.model}[self.boost_w_gpu],
-                                       normalized_updates=averaged_updates, scales=self.scales)
+                current_model_before_agg = {True: self.model_cuda, False: self.model}[self.boost_w_gpu]
+                self.last_model = {k: copy.deepcopy(current_model_before_agg[k]) for k in current_model_before_agg}
+                self.last_updates = averaged_updates
+
+                # Step 5. 执行聚合更新 (得到 x_{t+1})
+
+                self.aggregate_updates(
+                    model_to_aggregate={True: self.model_cuda, False: self.model}[self.boost_w_gpu],
+                    normalized_updates=averaged_updates,
+                    scales=self.scales
+
+                )
 
                 if self.boost_w_gpu:
                     transfer_parameters(self.model_cuda, self.model)
+
+
 
             # Initialize an empty dictionary to collect all WandB logs
             wandb_log_data = {}
@@ -939,7 +954,7 @@ class Server(object):
             client.set_data(client_data, self.config)
 
     def aggregate_updates(self, model_to_aggregate, **kwargs):
-        if self.config['algorithm'] in ['fsmgda','fsmgda_vr']:
+        if self.config['algorithm'] in ['fsmgda', 'fsmgda_vr']:
             # Aggregate updates for common part
             scales = kwargs['scales']
             normalized_updates = kwargs['normalized_updates']
