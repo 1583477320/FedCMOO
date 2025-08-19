@@ -72,31 +72,6 @@ class Client(object):
             optimizer = torch.optim.SGD(model_params, lr=lr, momentum=momentum)
         return optimizer
 
-    # 需要的工具函数（与现有工具配合）
-    def named_grads_dict(self, module):
-        """返回 {name: grad_tensor.clone()}，没有梯度的置为0张量。"""
-        out = {}
-        for name, p in module.named_parameters():
-            if p.grad is None:
-                out[name] = torch.zeros_like(p, device=p.device)
-            else:
-                out[name] = p.grad.detach().clone()
-        return out
-
-    def zero_module_grads(self, module):
-        for p in module.parameters():
-            if p.grad is not None:
-                p.grad.detach_()
-                p.grad.zero_()
-
-    def add_inplace(self, dst_dict, src_dict):
-        for k in dst_dict.keys():
-            dst_dict[k] = dst_dict[k] + src_dict[k]
-
-    def scale_inplace(self, d, scale):
-        for k in d.keys():
-            d[k] = d[k] * scale
-
     def local_train(self, config, global_model, experiment_module, tasks, **kwargs):
         model_device = config['model_device']
         boost_w_gpu = True if device == 'cuda' and model_device != 'cuda' else False
@@ -928,178 +903,165 @@ class Client(object):
                         {True: device, False: model_device}[boost_w_gpu]) for name in final_task_model[task]} for task
                     in tasks}, 'c_local': c_local_update, 'g_global': g_global, 'c_delta': c_delta}
 
-        elif config['algorithm'] in ['fsmgda_vr']:
-            for m in global_model.values():
-                m.to(return_device)
-                m.train()
-
-            if kwargs.get('initial_d', False):
-                # ---------- 初始化方向估计 d_0：按任务分别累计并平均 ----------
-                updates = {
-                    t: {
-                        'rep': {name: torch.zeros_like(param, device=return_device)
-                                for name, param in global_model['rep'].named_parameters()},
-                        t: {name: torch.zeros_like(param, device=return_device)
-                            for name, param in global_model[t].named_parameters()}
-                    }
-                    for t in tasks
-                }
+        if config['algorithm'] in ['fsmgda_vr']:
+            if kwargs['initial_d'] == True:
+                updates = {t: {'rep': {name: None for name in model_to_dict(global_model['rep'])},
+                               t: {name: None for name in model_to_dict(global_model[t])}} for t in tasks}
 
                 for task in tasks:
-                    # 保存初始权重
-                    initial_rep = model_to_dict(global_model['rep'])
-                    initial_head = model_to_dict(global_model[task])
+                    initial_model = model_to_dict(global_model['rep'])
+                    initial_task_model = model_to_dict(global_model[task])
 
-                    step_count = 0
-                    for batch in self.dataloader:
-                        if step_count == config['hyperparameters']['local_training']['nb_of_local_rounds']:
-                            break
-                        step_count += 1
+                    local_update_counter = 0
+                    local_updates_finished_flag = False
+                    while not local_updates_finished_flag:
+                        for batch in self.dataloader:
+                            if local_update_counter == config['hyperparameters']['local_training'][
+                                'nb_of_local_rounds']:
+                                local_updates_finished_flag = True
+                                break
 
-                        # --- forward/backward on current model, accumulate normalized grads to buffer ---
-                        images = experiment_module.trainLoopPreprocess(batch[0].to(device))
-                        labels = batch[tasks.index(task) + 1].to(device)
+                            images = experiment_module.trainLoopPreprocess(
+                                batch[0].to(device))  # if device != config['data']['trainset_device'] else batch[0])
+                            labels = batch[tasks.index(task) + 1].to(
+                                device)  # if device != config['data']['trainset_device'] else batch[tasks.index(task) + 1]
 
-                        self.zero_module_grads(global_model['rep'])
-                        self.zero_module_grads(global_model[task])
+                            rep, _ = global_model['rep'](images, None)
+                            out, _ = global_model[task](rep, None)
+                            loss = loss_fn[task](out, labels)
+                            loss.backward()
 
-                        rep, _ = global_model['rep'](images, None)
-                        out, _ = global_model[task](rep, None)
-                        loss = loss_fn[task](out, labels)
-                        loss.backward()
+                            # Normalize gradients if required
+                            if config['algorithm_args'][config['algorithm']]['normalize_local_iters']:
+                                total_norm = 0.0
+                                for name, param in global_model['rep'].named_parameters():
+                                    if param.grad is not None:
+                                        total_norm += param.grad.data.norm(2).item() ** 2
+                                for name, param in global_model[task].named_parameters():
+                                    if param.grad is not None:
+                                        total_norm += param.grad.data.norm(2).item() ** 2
+                                total_norm = total_norm ** 0.5
 
-                        # 可选：归一化当前 batch 梯度
-                        if config['algorithm_args'][config['algorithm']]['normalize_local_iters']:
-                            # 计算整体范数
-                            total_sq = 0.0
-                            for _, p in global_model['rep'].named_parameters():
-                                if p.grad is not None:
-                                    total_sq += p.grad.data.norm(2).item() ** 2
-                            for _, p in global_model[task].named_parameters():
-                                if p.grad is not None:
-                                    total_sq += p.grad.data.norm(2).item() ** 2
-                            total_norm = (total_sq ** 0.5) if total_sq > 0 else 1.0
-                            # 规范化
-                            for _, p in global_model['rep'].named_parameters():
-                                if p.grad is not None:
-                                    p.grad.data.div_(total_norm)
-                            for _, p in global_model[task].named_parameters():
-                                if p.grad is not None:
-                                    p.grad.data.div_(total_norm)
+                                # Normalize gradients
+                                for name, param in global_model['rep'].named_parameters():
+                                    if param.grad is not None:
+                                        param.grad.data.div_(total_norm)
+                                for name, param in global_model[task].named_parameters():
+                                    if param.grad is not None:
+                                        param.grad.data.div_(total_norm)
 
-                        # 累加到方向缓冲
-                        rep_grads = self.named_grads_dict(global_model['rep'])
-                        head_grads = self.named_grads_dict(global_model[task])
-                        self.add_inplace(updates[task]['rep'], rep_grads)
-                        self.add_inplace(updates[task][task], head_grads)
+                            local_update_counter += 1
 
-                    # 平均
-                    if step_count > 0:
-                        self.scale_inplace(updates[task]['rep'], 1.0 / step_count)
-                        self.scale_inplace(updates[task][task], 1.0 / step_count)
+                    for name, param in global_model['rep'].named_parameters():
+                        if updates[task]['rep'][name] is None:
+                            updates[task]['rep'][name] = param.grad.data.to(return_device)/config['hyperparameters']['local_training'][
+                            'nb_of_local_rounds']
+                        else:
+                            updates[task]['rep'][name] += param.grad.data.to(return_device)/config['hyperparameters']['local_training'][
+                            'nb_of_local_rounds']
 
-                    # 复原权重
-                    with torch.no_grad():
-                        dict_to_model(global_model['rep'], initial_rep)
-                        dict_to_model(global_model[task], initial_head)
+                    for name, param in global_model[task].named_parameters():
+                        if updates[task][task][name] is None:
+                            updates[task][task][name] = param.grad.data.to(return_device)/config['hyperparameters']['local_training'][
+                            'nb_of_local_rounds']
+                        else:
+                            updates[task][task][name] += param.grad.data.to(return_device)/config['hyperparameters']['local_training'][
+                            'nb_of_local_rounds']
+                    # Reset global model to initial state before starting next task training
+                    dict_to_model(global_model['rep'], initial_model)
+                    dict_to_model(global_model[task], initial_task_model)
 
                 function_return = {"updates": updates}
-
             else:
-                # ---------- STORM 风格的 VR 本地更新 ----------
-                optimizer = self.get_optimizer(config, global_model)
-
-                # 用“名字对齐”的 d_{t-1}
-                last_updates = kwargs['last_updates']  # 结构: {task: {'rep': {name:tensor}, task:{name:tensor}}}
-                last_model = kwargs['last_model']  # 上一轮全局模型副本（已to(device)）
-                T = int(kwargs.get('T', 0))
-                beta_t = 1.0 / ((T + 1) ** (2.0 / 3.0))  # 常见 STORM 设定；若你另有日程，可从 config 读
-
                 updates = {t: {'rep': None, t: None} for t in tasks}
+                for temp in updates.keys():
+                    updates[temp]['rep'] = None
 
                 for task in tasks:
-                    initial_rep = model_to_dict(global_model['rep'])
-                    initial_head = model_to_dict(global_model[task])
+                    optimizer = self.get_optimizer(config, global_model)
+                    initial_model = model_to_dict(global_model['rep'])
+                    initial_task_model = model_to_dict(global_model[task])
 
-                    step_count = 0
-                    for batch in self.dataloader:
-                        if step_count == config['hyperparameters']['local_training']['nb_of_local_rounds']:
-                            break
-                        step_count += 1
+                    local_update_counter = 0
+                    local_updates_finished_flag = False
+                    while not local_updates_finished_flag:
+                        for batch in self.dataloader:
+                            optimizer.zero_grad()
+                            if local_update_counter == config['hyperparameters']['local_training'][
+                                'nb_of_local_rounds']:
+                                local_updates_finished_flag = True
+                                break
 
-                        images = experiment_module.trainLoopPreprocess(batch[0].to(device))
-                        labels = batch[tasks.index(task) + 1].to(device)
+                            images = experiment_module.trainLoopPreprocess(
+                                batch[0].to(device))  # if device != config['data']['trainset_device'] else batch[0])
+                            labels = batch[tasks.index(task) + 1].to(
+                                device)  # if device != config['data']['trainset_device'] else batch[tasks.index(task) + 1]
 
-                        # --- 当前模型梯度 g_t(x_t) ---
-                        self.zero_module_grads(global_model['rep'])
-                        self.zero_module_grads(global_model[task])
+                            rep, _ = global_model['rep'](images, None)
+                            out, _ = global_model[task](rep, None)
+                            loss = loss_fn[task](out, labels)
+                            loss.backward()
 
-                        rep, _ = global_model['rep'](images, None)
-                        out, _ = global_model[task](rep, None)
-                        loss = loss_fn[task](out, labels)
-                        loss.backward()
-                        g_rep = self.named_grads_dict(global_model['rep'])
-                        g_head = self.named_grads_dict(global_model[task])
+                            # 计算上轮次模型的梯度
+                            rep, _ = kwargs['last_model']['rep'](images, None)
+                            out, _ = kwargs['last_model'][task](rep, None)
+                            loss = loss_fn[task](out, labels)
+                            loss.backward()
 
-                        # --- 旧模型同批次梯度 g_t(x_{t-1}) ---
-                        self.zero_module_grads(last_model['rep'])
-                        self.zero_module_grads(last_model[task])
+                            # config['algorithm_args'][config['algorithm']]['beta'] == 1 / ((kwargs['T'] + 1) ** (2 / 3))
+                            for param, last_param, d in zip(global_model['rep'].parameters(),
+                                                            kwargs['last_model']['rep'].parameters(),
+                                                            list(kwargs['last_updates'][task]['rep'].values())):
+                                param.grad = param.grad + (
+                                        1 - config['algorithm_args'][config['algorithm']]['beta']) * (
+                                                         d - last_param.grad)
 
-                        last_rep, _ = last_model['rep'](images, None)
-                        last_out, _ = last_model[task](last_rep, None)
-                        last_loss = loss_fn[task](last_out, labels)
-                        last_loss.backward()
-                        g_prev_rep = self.named_grads_dict(last_model['rep'])
-                        g_prev_head = self.named_grads_dict(last_model[task])
+                            for param, last_param, d in zip(global_model[task].parameters(),
+                                                            kwargs['last_model'][task].parameters(),
+                                                            list(kwargs['last_updates'][task][task].values())):
+                                param.grad = param.grad + (
+                                        1 - config['algorithm_args'][config['algorithm']]['beta']) * (
+                                                         d - last_param.grad)
 
-                        # --- 取出 d_{t-1} 并做 STORM 融合：v_t = g_t + (1-β)(d_{t-1} - g_t(x_{t-1})) ---
-                        v_rep = {}
-                        v_head = {}
+                            # Normalize gradients if required
+                            if config['algorithm_args'][config['algorithm']]['normalize_local_iters']:
+                                total_norm = 0.0
+                                for name, param in global_model['rep'].named_parameters():
+                                    if param.grad is not None:
+                                        total_norm += param.grad.data.norm(2).item() ** 2
+                                for name, param in global_model[task].named_parameters():
+                                    if param.grad is not None:
+                                        total_norm += param.grad.data.norm(2).item() ** 2
+                                total_norm = total_norm ** 0.5
 
-                        for name, p in global_model['rep'].named_parameters():
-                            d_prev = last_updates[task]['rep'][name].to(device)
-                            v_rep[name] = g_rep[name] + (1.0 - beta_t) * (d_prev - g_prev_rep[name])
+                                # Normalize gradients
+                                for name, param in global_model['rep'].named_parameters():
+                                    if param.grad is not None:
+                                        param.grad.data.div_(total_norm)
+                                for name, param in global_model[task].named_parameters():
+                                    if param.grad is not None:
+                                        param.grad.data.div_(total_norm)
 
-                        for name, p in global_model[task].named_parameters():
-                            d_prev = last_updates[task][task][name].to(device)
-                            v_head[name] = g_head[name] + (1.0 - beta_t) * (d_prev - g_prev_head[name])
+                            optimizer.step()
+                            local_update_counter += 1
 
-                        # --- 可选：对融合后的方向做一次整体归一化 ---
-                        if config['algorithm_args'][config['algorithm']]['normalize_local_iters']:
-                            # 计算范数
-                            total_sq = 0.0
-                            for name, p in global_model['rep'].named_parameters():
-                                total_sq += v_rep[name].norm(2).item() ** 2
-                            for name, p in global_model[task].named_parameters():
-                                total_sq += v_head[name].norm(2).item() ** 2
-                            total_norm = (total_sq ** 0.5) if total_sq > 0 else 1.0
-                            inv = 1.0 / total_norm
-                            for name in v_rep.keys():
-                                v_rep[name].mul_(inv)
-                            for name in v_head.keys():
-                                v_head[name].mul_(inv)
-
-                        # --- 把自定义方向写入 .grad 并一步更新 ---
-                        self.zero_module_grads(global_model['rep'])
-                        self.zero_module_grads(global_model[task])
-                        for name, p in global_model['rep'].named_parameters():
-                            p.grad = v_rep[name]
-                        for name, p in global_model[task].named_parameters():
-                            p.grad = v_head[name]
-
-                        optimizer.step()
-
-                    # 聚合：Δ = final - initial
                     with torch.no_grad():
-                        final_rep = model_to_dict(global_model['rep'])
-                        final_head = model_to_dict(global_model[task])
-                        updates[task]['rep'] = {n: (final_rep[n] - initial_rep[n]).to(return_device) for n in final_rep}
-                        updates[task][task] = {n: (final_head[n] - initial_head[n]).to(return_device) for n in
-                                               final_head}
-                        # 复原权重，准备下一个 task
-                        dict_to_model(global_model['rep'], initial_rep)
-                        dict_to_model(global_model[task], initial_head)
+                        final_model = model_to_dict(global_model['rep'])
+                        final_task_model = model_to_dict(global_model[task])
+                        [reset_gradients(m) for m in [global_model['rep'], global_model[task]]]
+                        [reset_gradients(m) for m in [kwargs['last_model']['rep'], kwargs['last_model'][task]]]
+
+                        updates[task]['rep'] = {name: (final_model[name] - initial_model[name]).to(return_device) for
+                                                name
+                                                in final_model}
+                        updates[task][task] = {
+                            name: (final_task_model[name] - initial_task_model[name]).to(return_device)
+                            for name in final_task_model}
+
+                        # Reset global model to initial state before starting next task training
+                        dict_to_model(global_model['rep'], initial_model)
+                        dict_to_model(global_model[task], initial_task_model)
 
                 function_return = {"updates": updates}
 
-            return function_return
+        return function_return
