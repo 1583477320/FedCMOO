@@ -70,7 +70,7 @@
 "data": {
     "distribution": "dirichlet_all_labels",
     "test_batch_size": 4000,
-    "diric_alpha": 0.3,
+    "diric_alpha": 0.5,
     "pre_transform": true,
     "testset_device": "cuda",
     "trainset_device": "cuda",
