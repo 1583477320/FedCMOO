@@ -76,7 +76,7 @@
     "trainset_device": "cuda",
     "valset_device": "cuda",
     "val_ratio": 0.2,
-    "val_seed": 1
+    "val_seed": 42
 },
 "metrics" :{"train_period": 1,
         "test_period": 3,
