@@ -60,8 +60,8 @@
     "global_lr":1.6,
     "local_training": {
         "optimizer": "SGD",
-        "batch_size": 258,
-        "nb_of_local_rounds": 5,
+        "batch_size": 256,
+        "nb_of_local_rounds": 10,
         "local_lr": 0.25,
         "local_momentum": 0,
         "local_lr_scheduler_flag": true
@@ -70,7 +70,7 @@
 "data": {
     "distribution": "dirichlet_all_labels",
     "test_batch_size": 4000,
-    "diric_alpha": 0.5,
+    "diric_alpha": 0.3,
     "pre_transform": true,
     "testset_device": "cuda",
     "trainset_device": "cuda",
