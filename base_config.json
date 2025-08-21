@@ -70,13 +70,13 @@
 "data": {
     "distribution": "dirichlet_all_labels",
     "test_batch_size": 3000,
-    "diric_alpha": 0.5,
+    "diric_alpha": 0.3,
     "pre_transform": true,
     "testset_device": "cuda",
     "trainset_device": "cuda",
     "valset_device": "cuda",
     "val_ratio": 0.2,
-    "val_seed": 4237
+    "val_seed": 42
 },
 "metrics" :{"train_period": 1,
         "test_period": 3,
