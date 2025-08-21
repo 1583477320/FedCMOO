@@ -55,7 +55,7 @@
     "experiment_history": " "
 },
 "model_device": "cuda",
-"data_seed": 42,
+"data_seed": 1,
 "hyperparameters": {
     "global_lr":1.6,
     "local_training": {
@@ -76,7 +76,7 @@
     "trainset_device": "cuda",
     "valset_device": "cuda",
     "val_ratio": 0.2,
-    "val_seed": 42
+    "val_seed": 1
 },
 "metrics" :{"train_period": 1,
         "test_period": 3,
