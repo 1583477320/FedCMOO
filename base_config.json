@@ -55,12 +55,12 @@
     "experiment_history": " "
 },
 "model_device": "cuda",
-"data_seed": 1,
+"data_seed": 42,
 "hyperparameters": {
     "global_lr":1.6,
     "local_training": {
         "optimizer": "SGD",
-        "batch_size": 128,
+        "batch_size": 256,
         "nb_of_local_rounds": 10,
         "local_lr": 0.25,
         "local_momentum": 0,
@@ -76,7 +76,7 @@
     "trainset_device": "cuda",
     "valset_device": "cuda",
     "val_ratio": 0.2,
-    "val_seed": 1
+    "val_seed": 42
 },
 "metrics" :{"train_period": 1,
         "test_period": 3,
