@@ -35,7 +35,7 @@
                              "count_decoders" : false,
                              "normalize_updates" : false,
                              "compression" : false,
-                              "beta": 0.95,
+                              "beta": 0.97,
                               "lipschitz":0.1}
 },
 "experiment": "MultiMNIST",
@@ -76,7 +76,7 @@
     "trainset_device": "cuda",
     "valset_device": "cuda",
     "val_ratio": 0.2,
-    "val_seed": 42
+    "val_seed": 4237
 },
 "metrics" :{"train_period": 1,
         "test_period": 3,
