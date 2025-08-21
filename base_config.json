@@ -69,8 +69,8 @@
 },
 "data": {
     "distribution": "dirichlet_all_labels",
-    "test_batch_size": 5000,
-    "diric_alpha": 0.3,
+    "test_batch_size": 3000,
+    "diric_alpha": 0.5,
     "pre_transform": true,
     "testset_device": "cuda",
     "trainset_device": "cuda",
