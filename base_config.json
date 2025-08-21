@@ -35,7 +35,7 @@
                              "count_decoders" : false,
                              "normalize_updates" : false,
                              "compression" : false,
-                              "beta": 0.97,
+                              "beta": 0.95,
                               "lipschitz":0.1}
 },
 "experiment": "MultiMNIST",
