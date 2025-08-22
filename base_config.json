@@ -63,7 +63,7 @@
         "batch_size": 256,
         "nb_of_local_rounds": 10,
         "local_lr": 0.25,
-        "local_momentum": 0,
+        "local_momentum": 0.9,
         "local_lr_scheduler_flag": true
     }
 },
