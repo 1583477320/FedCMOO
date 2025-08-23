@@ -185,7 +185,7 @@ class Server(object):
 
         # 初始化fsmgda-vr的参数
         if self.config['algorithm'] == 'fsmgda_vr':
-            local_lr = self.config["hyperparameters"]["local_training"]["local_lr"]
+            self.local_lr = self.config["hyperparameters"]["local_training"]["local_lr"]
             self.last_model = copy.deepcopy({True: self.model_cuda, False: self.model}[self.boost_w_gpu])
 
             averaged_updates = {task: {'rep': {}, task: {}} for task in self.tasks}
@@ -256,7 +256,7 @@ class Server(object):
                     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                     logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
                 elif 'fsmgda_vr' in self.config['algorithm'] :
-                    new_lr = local_lr * 0.95 ** self.round_num
+                    new_lr = self.local_lr * 0.95 ** self.round_num
                     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                     logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
 
