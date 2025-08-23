@@ -185,7 +185,6 @@ class Server(object):
 
         # 初始化fsmgda-vr的参数
         if self.config['algorithm'] == 'fsmgda_vr':
-            self.local_lr = self.config["hyperparameters"]["local_training"]["local_lr"]
             self.last_model = copy.deepcopy({True: self.model_cuda, False: self.model}[self.boost_w_gpu])
 
             averaged_updates = {task: {'rep': {}, task: {}} for task in self.tasks}
@@ -239,6 +238,8 @@ class Server(object):
 
     def train(self):
         """Train the global model using federated learning."""
+        local_lr = self.config["hyperparameters"]["local_training"]["local_lr"]
+        
         for m in self.model:
             if self.config['model_device'] == 'cuda' and device == 'cuda':
                 self.model[m] = self.model[m].cuda()
@@ -250,15 +251,15 @@ class Server(object):
         for self.round_num in range(start_round, self.config['max_round']):
             if self.config["hyperparameters"]["local_training"]["local_lr_scheduler_flag"]:  # LR scheduler
                 # Check if the current round is a multiple of the decay interval
-                if self.round_num % (self.config['max_round'] // 5) == 0 and self.round_num != 0 and 'fsmgda_vr' not in self.config['algorithm'] :
-                    # Halve the learning rate
-                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.5
-                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-                    logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-                elif 'fsmgda_vr' in self.config['algorithm'] :
-                    new_lr = self.local_lr * 0.95 ** self.round_num
-                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-                    logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
+                # if self.round_num % (self.config['max_round'] // 5) == 0 and self.round_num != 0 and 'fsmgda_vr' not in self.config['algorithm'] :
+                #     # Halve the learning rate
+                #     new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.5
+                #     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+                #     logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
+                # elif 'fsmgda_vr' in self.config['algorithm'] :
+                new_lr = local_lr * 0.95 ** self.round_num
+                self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+                logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
 
             starting_time = time.time()
 
