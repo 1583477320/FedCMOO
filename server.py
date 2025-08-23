@@ -251,15 +251,15 @@ class Server(object):
         for self.round_num in range(start_round, self.config['max_round']):
             if self.config["hyperparameters"]["local_training"]["local_lr_scheduler_flag"]:  # LR scheduler
                 # Check if the current round is a multiple of the decay interval
-                # if self.round_num % (self.config['max_round'] // 5) == 0 and self.round_num != 0 and 'fsmgda_vr' not in self.config['algorithm'] :
-                #     # Halve the learning rate
-                #     new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.5
-                #     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-                #     logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
+                if self.round_num % 25 == 0 and self.round_num != 0 :
+                    # Halve the learning rate
+                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.5
+                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+                    logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
                 # elif 'fsmgda_vr' in self.config['algorithm'] :
-                new_lr = local_lr * 0.95 ** self.round_num
-                self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-                logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
+                # new_lr = local_lr * 0.95 ** self.round_num
+                # self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+                # logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
 
             starting_time = time.time()
 
