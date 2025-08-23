@@ -220,8 +220,8 @@ def base_config_set(base_config_file_path, experiment, algorithm):
 
     elif experiment == "MultiMNIST":
         if algorithm == "fsmgda":
-            d["hyperparameters"]["global_lr"] = 1.6
-            d["hyperparameters"]["local_training"]["local_lr"] = 0.25
+            d["hyperparameters"]["global_lr"] = 2.0
+            d["hyperparameters"]["local_training"]["local_lr"] = 0.1
         elif algorithm == "fedcmoo":
             d["hyperparameters"]["global_lr"] = 1.2
             d["hyperparameters"]["local_training"]["local_lr"] = 0.5
@@ -237,19 +237,17 @@ def base_config_set(base_config_file_path, experiment, algorithm):
 
     elif experiment == "MNIST_FMNIST":
         if algorithm == "fsmgda":
-            d["hyperparameters"]["global_lr"] = 1.7
-            d["hyperparameters"]["local_training"]["local_lr"] = 0.2
+            d["hyperparameters"]["global_lr"] = 2
+            d["hyperparameters"]["local_training"]["local_lr"] = 0.1
         elif algorithm == "fedcmoo":
             d["hyperparameters"]["global_lr"] = 1.2
             d["hyperparameters"]["local_training"]["local_lr"] = 0.5
         elif algorithm == "fedcmoo_pref":
             d["hyperparameters"]["global_lr"] = 1.6
             d["hyperparameters"]["local_training"]["local_lr"] = 0.3
-        elif algorithm == "fsmgda_vr":
-            d["hyperparameters"]["global_lr"] = 1.4
-            d["hyperparameters"]["local_training"]["local_lr"] = 0.3
-            # d["hyperparameters"]["local_training"]["nb_of_local_rounds"] = 7
-            
+        elif algorithm == "fedcmoo_test":
+            d["hyperparameters"]["global_lr"] = 1.2
+            d["hyperparameters"]["local_training"]["local_lr"] = 0.1
 
     elif experiment == "CIFAR10_MNIST":
         d["hyperparameters"]["global_lr"] = 0.1
