@@ -80,7 +80,7 @@
 },
 "metrics" :{"train_period": 1,
         "test_period": 3,
-        "val_period": 3,
+        "val_period": 2,
         "model_save_period": 0
 },
 "reload_exp" :{"flag":false,
