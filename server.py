@@ -249,13 +249,14 @@ class Server(object):
         for self.round_num in range(start_round, self.config['max_round']):
             if self.config["hyperparameters"]["local_training"]["local_lr_scheduler_flag"]:  # LR scheduler
                 # Check if the current round is a multiple of the decay interval
-                if self.round_num % 22 == 0 and self.round_num != 0:
-                    if self.round_num < 101:
+                if self.round_num < 101:
+                    if self.round_num % 22 == 0 and self.round_num != 0:
                         # Halve the learning rate
                         new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.40
                         self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                         logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-                    else:
+                else:
+                    if self.round_num % 100 == 0 and self.round_num != 0:
                         new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.10
                         self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                         logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
