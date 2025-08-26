@@ -269,7 +269,7 @@ class Server(object):
                     new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.80
                     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
 
-                    new_beta = 0.90
+                    new_beta = 0.95
                     self.config["algorithm_args"]["fsmgda_vr"]["beta"] = new_beta
                             
             starting_time = time.time()
