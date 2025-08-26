@@ -262,11 +262,11 @@ class Server(object):
                 #         logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
                 if self.round_num % 22 == 0 and self.round_num != 0 and self.round_num < 101:
                     # Halve the learning rate
-                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.40
+                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.50
                     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                 elif self.round_num % 22 == 0  and 101<=self.round_num < 201:
                     # Halve the learning rate
-                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 1.05
+                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.3
                     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
 
                             
