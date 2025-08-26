@@ -266,7 +266,7 @@ class Server(object):
                     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                 elif self.round_num % 50 == 0  and 101<=self.round_num < 251:
                     # Halve the learning rate
-                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.3
+                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.1
                     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
 
                             
