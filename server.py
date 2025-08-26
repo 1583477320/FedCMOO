@@ -260,14 +260,15 @@ class Server(object):
                 #         new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.90
                 #         self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                 #         logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-                # if self.round_num % 22 == 0 and self.round_num != 0:
-                #     # Halve the learning rate
-                #     new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.4
-                #     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-                
-                rat = self.lr_lambda(self.round_num,50,self.config['max_round'])
-                new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * rat
-                self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+                if self.round_num % 22 == 0 and self.round_num != 0 and self.round_num < 51:
+                    # Halve the learning rate
+                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.4
+                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+                elif self.round_num % 22 == 0 and self.round_num != 0 and 51<=self.round_num < 101:
+                    # Halve the learning rate
+                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.8
+                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+
                             
             starting_time = time.time()
 
