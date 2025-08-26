@@ -260,10 +260,13 @@ class Server(object):
                 #         new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.90
                 #         self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                 #         logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-                if self.round_num % 22 == 0 and self.round_num != 0:
-                    # Halve the learning rate
-                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.4
-                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+                # if self.round_num % 22 == 0 and self.round_num != 0:
+                #     # Halve the learning rate
+                #     new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.4
+                #     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+                rat = lr_lambda(self.round_num,500,self.config['max_round'])
+                new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * rat
+                self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                             
             starting_time = time.time()
 
@@ -1223,22 +1226,11 @@ class Server(object):
             c_c.data += c_del
             g_global.data += beta * c_c.data + (1 - beta) * g_global.data
 
-    def g_aggregate(self, update):
-        # c_global = update['c_global']
-        c_delta_list = list(update.values())
-        beta = self.config['algorithm_args'][self.config['algorithm']]['beta']
-        # update global model
-        avg_weight = torch.tensor(
-            [
-                1 / self.config["nb_of_participating_clients"]
-                for _ in range(self.config["nb_of_participating_clients"])
-            ],
-            device=device,
-        )
-
-        # update global control
-        for c_g, c_del, g_global in zip(self.c_global, zip(*c_delta_list), self.g_global):
-            c_del = torch.sum(avg_weight * torch.stack(c_del, dim=-1), dim=-1)
-            c_g.data += c_del
-
-            g_global.data += beta * c_g.data + (1 - beta) * g_global.data
+    def lr_lambda(round_idx,hold_rounds,total_rounds,min_lr_factor=0.3):
+        # if round_idx < warmup_rounds:
+        #     return (round_idx + 1) / warmup_rounds
+        if round_idx < hold_rounds:
+            return 1.0
+        else:
+            progress = (round_idx - hold_rounds) / (total_rounds - hold_rounds)
+            return min_lr_factor + 0.5 * (1 - min_lr_factor) * (1 + torch.cos(torch.tensor(progress * 3.1415926535)))
