@@ -264,7 +264,8 @@ class Server(object):
                 #     # Halve the learning rate
                 #     new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.4
                 #     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-                rat = self.lr_lambda(self.round_num,50,self.config['max_round'])
+                
+                rat = self.lr_lambda(round_idx=self.round_num,hold_rounds=50,total_rounds=self.config['max_round'])
                 new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * rat
                 self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                             
