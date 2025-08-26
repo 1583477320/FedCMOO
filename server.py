@@ -265,7 +265,7 @@ class Server(object):
                 #     new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.4
                 #     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                 
-                rat = self.lr_lambda(round_idx=self.round_num,hold_rounds=50,total_rounds=self.config['max_round'])
+                rat = self.lr_lambda(self.round_num,50,self.config['max_round'])
                 new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * rat
                 self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                             
@@ -1227,7 +1227,7 @@ class Server(object):
             c_c.data += c_del
             g_global.data += beta * c_c.data + (1 - beta) * g_global.data
 
-    def lr_lambda(round_idx,hold_rounds,total_rounds,min_lr_factor=0.3):
+    def lr_lambda(self,round_idx,hold_rounds,total_rounds,min_lr_factor=0.3):
         # if round_idx < warmup_rounds:
         #     return (round_idx + 1) / warmup_rounds
         if round_idx < hold_rounds:
