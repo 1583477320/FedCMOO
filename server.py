@@ -260,17 +260,22 @@ class Server(object):
                 #         new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.90
                 #         self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                 #         logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-                if self.round_num % 22 == 0 and self.round_num != 0 and self.round_num < 101:
-                    # Halve the learning rate
-                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.40
-                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-                elif self.round_num % 50 == 0  and 101<=self.round_num < 201:
-                    # Halve the learning rate
-                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.10
-                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+                # if self.round_num % 22 == 0 and self.round_num != 0 and self.round_num < 101:
+                #     # Halve the learning rate
+                #     new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.40
+                #     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+                # elif self.round_num % 50 == 0  and 101<=self.round_num < 201:
+                #     # Halve the learning rate
+                #     new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.10
+                #     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
 
-                    new_beta = 0.95
-                    self.config["algorithm_args"]["fsmgda_vr"]["beta"] = new_beta
+                #     new_beta = 0.95
+                #     self.config["algorithm_args"]["fsmgda_vr"]["beta"] = new_beta
+                if self.round_num >= 101:
+                    # Halve the learning rate
+                    new_lr = 0.05
+                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+                    logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
                             
             starting_time = time.time()
 
