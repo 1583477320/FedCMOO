@@ -271,14 +271,19 @@ class Server(object):
 
                 #     new_beta = 0.95
                 #     self.config["algorithm_args"]["fsmgda_vr"]["beta"] = new_beta
-                if self.round_num % 22 == 0 and self.round_num != 0 and self.round_num < 101:
+                if self.round_num % 22 == 0 and self.round_num != 0 and self.round_num < 51:
                     # Halve the learning rate
                     new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.40
                     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                     logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
+                elif self.round_num % 22 == 0 and self.round_num != 0 and 51 <= self.round_num < 101:
+                    # Halve the learning rate
+                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.20
+                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+                    logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
                 elif self.round_num >= 101:
                     # Halve the learning rate
-                    new_lr = 0.01
+                    new_lr = 0.1
                     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                     logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
                             
