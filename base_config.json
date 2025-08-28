@@ -60,7 +60,7 @@
     "global_lr":1.6,
     "local_training": {
         "optimizer": "SGD",
-        "batch_size": 128,
+        "batch_size": 256,
         "nb_of_local_rounds": 10,
         "local_lr": 0.25,
         "local_momentum": 0,
@@ -75,12 +75,12 @@
     "testset_device": "cuda",
     "trainset_device": "cuda",
     "valset_device": "cuda",
-    "val_ratio": 0.2,
+    "val_ratio": 0.1,
     "val_seed": 42
 },
 "metrics" :{"train_period": 1,
         "test_period": 3,
-        "val_period": 2,
+        "val_period": 3,
         "model_save_period": 0
 },
 "reload_exp" :{"flag":false,
