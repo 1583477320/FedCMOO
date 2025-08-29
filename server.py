@@ -250,12 +250,12 @@ class Server(object):
             if self.config["hyperparameters"]["local_training"]["local_lr_scheduler_flag"]:  # LR scheduler
                 if self.round_num % 22 == 0 and self.round_num != 0 and self.round_num < 31:
                     # Halve the learning rate
-                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.40
+                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.10
                     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                     logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-                elif self.round_num % 22 == 0 and 31 <= self.round_num < 51:
+                elif self.round_num % 30 == 0 and 21 <= self.round_num < 51:
                     # Halve the learning rate
-                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.50
+                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.30
                     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
                     logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
                 elif self.round_num >= 301:
