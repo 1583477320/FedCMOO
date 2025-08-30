@@ -257,7 +257,7 @@ class Server(object):
                     # Halve the learning rate
                     new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 2.0
                     self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-                    self.config["algorithm_args"]["fsmgda_vr"]["beta"] = 0.95
+                    self.config["algorithm_args"]["fsmgda_vr"]["beta"] = 0.9
                     logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
                 elif self.round_num >= 301:
                     # Halve the learning rate
