@@ -128,71 +128,71 @@ class StormOptimizer(Optimizer):
 
         return loss
 
-def lr_scheduler(config):
+def lr_scheduler(config, round_num):
     if config["experiment"] == 'MultiMNIST':  # LR scheduler
-        if self.round_num % 22 == 0 and self.round_num != 0 and self.round_num < 31:
+        if round_num % 22 == 0 and round_num != 0 and round_num < 31:
             # Halve the learning rate
-            new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.10
-            self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-            logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-        elif self.round_num % 30 == 0 and 21 <= self.round_num < 51:
+            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 0.10
+            config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+            logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
+        elif round_num % 30 == 0 and 21 <= round_num < 51:
             # Halve the learning rate
-            new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 2.5
-            self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-            # self.config["algorithm_args"]["fsmgda_vr"]["beta"] = 0.97
-            logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-        elif self.round_num % 30 == 0 and 51 <= self.round_num < 101:
+            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 2.5
+            config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+            # config["algorithm_args"]["fsmgda_vr"]["beta"] = 0.97
+            logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
+        elif round_num % 30 == 0 and 51 <= round_num < 101:
             # Halve the learning rate
-            new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.509
-            self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-            logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-        elif self.round_num % 30 == 0 and 101 <= self.round_num < 151:
+            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 0.509
+            config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+            logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
+        elif round_num % 30 == 0 and 101 <= round_num < 151:
             # Halve the learning rate
-            new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.609
-            self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-            logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-        elif self.round_num % 30 == 0 and 151 <= self.round_num < 201:
+            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 0.609
+            config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+            logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
+        elif round_num % 30 == 0 and 151 <= round_num < 201:
             # Halve the learning rate
-            new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.651
-            self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-            logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-        elif self.round_num % 30 == 0 and 201 <= self.round_num < 251:
+            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 0.651
+            config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+            logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
+        elif round_num % 30 == 0 and 201 <= round_num < 251:
             # Halve the learning rate
-            # new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 1.051
+            # new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 1.051
             new_lr = 0.008
-            self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-            logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
+            config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+            logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
             
     elif config["experiment"] == 'MNIST_FMNIST':  # LR scheduler
-        if self.round_num % 22 == 0 and self.round_num != 0 and self.round_num < 31:
+        if round_num % 22 == 0 and round_num != 0 and round_num < 31:
             # Halve the learning rate
-            new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.10
-            self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-            logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-        elif self.round_num % 30 == 0 and 21 <= self.round_num < 51:
+            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 0.10
+            config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+            logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
+        elif round_num % 30 == 0 and 21 <= round_num < 51:
             # Halve the learning rate
-            new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 2.5
-            self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-            # self.config["algorithm_args"]["fsmgda_vr"]["beta"] = 0.97
-            logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-        elif self.round_num % 30 == 0 and 51 <= self.round_num < 101:
+            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 2.5
+            config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+            # config["algorithm_args"]["fsmgda_vr"]["beta"] = 0.97
+            logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
+        elif round_num % 30 == 0 and 51 <= round_num < 101:
             # Halve the learning rate
-            new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.509
-            self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-            logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-        elif self.round_num % 30 == 0 and 101 <= self.round_num < 151:
+            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 0.509
+            config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+            logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
+        elif round_num % 30 == 0 and 101 <= round_num < 151:
             # Halve the learning rate
-            new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.609
-            self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-            logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-        elif self.round_num % 30 == 0 and 151 <= self.round_num < 201:
+            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 0.609
+            config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+            logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
+        elif round_num % 30 == 0 and 151 <= round_num < 201:
             # Halve the learning rate
-            new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.651
-            self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-            logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-        elif self.round_num % 30 == 0 and 201 <= self.round_num < 251:
+            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 0.651
+            config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+            logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
+        elif round_num % 30 == 0 and 201 <= round_num < 251:
             # Halve the learning rate
-            # new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 1.051
+            # new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 1.051
             new_lr = 0.03
-            self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-            logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
+            config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+            logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
