@@ -20,6 +20,7 @@ from config import Config
 from epo_lp import *
 import re
 from typing import Dict, List, OrderedDict
+from optimizer import lr_scheduler
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 seed = 42
@@ -248,38 +249,7 @@ class Server(object):
         start_round = self.metrics.current_round
         for self.round_num in range(start_round, self.config['max_round']):
             if self.config["hyperparameters"]["local_training"]["local_lr_scheduler_flag"]:  # LR scheduler
-                if self.round_num % 22 == 0 and self.round_num != 0 and self.round_num < 31:
-                    # Halve the learning rate
-                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.10
-                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-                    logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-                elif self.round_num % 30 == 0 and 21 <= self.round_num < 51:
-                    # Halve the learning rate
-                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 2.5
-                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-                    # self.config["algorithm_args"]["fsmgda_vr"]["beta"] = 0.97
-                    logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-                elif self.round_num % 30 == 0 and 51 <= self.round_num < 101:
-                    # Halve the learning rate
-                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.509
-                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-                    logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-                elif self.round_num % 30 == 0 and 101 <= self.round_num < 151:
-                    # Halve the learning rate
-                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.609
-                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-                    logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-                elif self.round_num % 30 == 0 and 151 <= self.round_num < 201:
-                    # Halve the learning rate
-                    new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 0.651
-                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-                    logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
-                elif self.round_num % 30 == 0 and 201 <= self.round_num < 251:
-                    # Halve the learning rate
-                    # new_lr = self.config["hyperparameters"]["local_training"]["local_lr"] * 1.051
-                    new_lr = 0.03
-                    self.config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-                    logging.info(f"Round {self.round_num}: Adjusting learning rate to {new_lr:.6f}")
+                lr_scheduler(self.config)
                             
             starting_time = time.time()
 
