@@ -127,3 +127,6 @@ class StormOptimizer(Optimizer):
                 p.data.add_(-adaptive_eta * grad_estimate)
 
         return loss
+
+def lr_strategy(Config):
+    
