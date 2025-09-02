@@ -249,7 +249,7 @@ class Server(object):
         start_round = self.metrics.current_round
         for self.round_num in range(start_round, self.config['max_round']):
             if self.config["hyperparameters"]["local_training"]["local_lr_scheduler_flag"]:  # LR scheduler
-                lr_scheduler(self.config)
+                lr_scheduler(self.config, self.round_num)
                             
             starting_time = time.time()
 
