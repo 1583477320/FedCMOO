@@ -172,7 +172,7 @@ def lr_scheduler(config, round_num):
             logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
         elif round_num % 30 == 0 and 21 <= round_num < 51:
             # Halve the learning rate
-            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 0.5
+            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 0.4
             config["hyperparameters"]["local_training"]["local_lr"] = new_lr
             # config["algorithm_args"]["fsmgda_vr"]["beta"] = 0.97
             logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
