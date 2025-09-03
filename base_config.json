@@ -59,7 +59,7 @@
 "hyperparameters": {
     "global_lr":1.6,
     "local_training": {
-        "optimizer": "Adam",
+        "optimizer": "SGD",
         "batch_size": 128,
         "nb_of_local_rounds": 10,
         "local_lr": 0.25,
