@@ -147,9 +147,9 @@ def lr_scheduler(config, round_num):
             new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 2.029
             config["hyperparameters"]["local_training"]["local_lr"] = new_lr
             logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
-        elif round_num % 30 == 0 and 81 <= round_num < 101:
+        elif round_num % 20 == 0 and 81 <= round_num < 101:
             # Halve the learning rate
-            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 1.529
+            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 1.229
             config["hyperparameters"]["local_training"]["local_lr"] = new_lr
             logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
         elif round_num % 30 == 0 and 101 <= round_num < 151:
