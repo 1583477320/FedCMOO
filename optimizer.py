@@ -142,9 +142,14 @@ def lr_scheduler(config, round_num):
             config["hyperparameters"]["local_training"]["local_lr"] = new_lr
             # config["algorithm_args"]["fsmgda_vr"]["beta"] = 0.97
             logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
-        elif round_num % 30 == 0 and 51 <= round_num < 101:
+        elif round_num % 30 == 0 and 51 <= round_num < 81:
             # Halve the learning rate
             new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 2.029
+            config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+            logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
+        elif round_num % 30 == 0 and 81 <= round_num < 101:
+            # Halve the learning rate
+            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 1.029
             config["hyperparameters"]["local_training"]["local_lr"] = new_lr
             logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
         elif round_num % 30 == 0 and 101 <= round_num < 151:
