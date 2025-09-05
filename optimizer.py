@@ -4,6 +4,7 @@ from torch.optim.optimizer import Optimizer
 from collections import defaultdict
 from config import Config
 import logging
+import math
 
 
 class StormOptimizer(Optimizer):
@@ -183,7 +184,9 @@ def lr_scheduler(config, round_num):
             logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
         elif round_num % 30 == 0 and 51 <= round_num < 101:
             # Halve the learning rate
-            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 5.309
+            # new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 5.309
+            init_lr = config["hyperparameters"]["local_training"]["local_lr"]
+            new_lr = sensitive_lr_scheduler(init_lr,51,50,10,0.5)
             config["hyperparameters"]["local_training"]["local_lr"] = new_lr
             logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
         elif round_num % 30 == 0 and 101 <= round_num < 151:
@@ -202,3 +205,31 @@ def lr_scheduler(config, round_num):
             new_lr = 0.03
             config["hyperparameters"]["local_training"]["local_lr"] = new_lr
             logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
+
+def sensitive_lr_scheduler(init_lr, epoch, total_epochs, drop_period=30, drop_factor=0.5, min_lr=1e-6):
+    """
+    对学习率特别敏感的策略：余弦退火 + 定期突降
+    
+    参数:
+        init_lr (float): 初始学习率
+        epoch (int): 当前训练轮数 (从0开始)
+        total_epochs (int): 总训练轮数
+        drop_period (int): 每隔多少轮突降一次学习率
+        drop_factor (float): 突降时学习率乘的系数 (0<drop_factor<1)
+        min_lr (float): 学习率下限
+    
+    返回:
+        lr (float): 当前轮数的学习率
+    """
+    # 基于余弦退火的学习率
+    cos_inner = math.pi * (epoch % drop_period) / drop_period
+    lr = init_lr * (math.cos(cos_inner) + 1) / 2
+    
+    # 叠加突降
+    num_drops = epoch // drop_period
+    lr = lr * (drop_factor ** num_drops)
+    
+    # 学习率不能低于最小值
+    lr = max(lr, min_lr)
+    
+    return lr
