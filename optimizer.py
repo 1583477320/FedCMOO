@@ -163,12 +163,12 @@ def lr_scheduler(config, round_num):
             new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 0.651
             config["hyperparameters"]["local_training"]["local_lr"] = new_lr
             logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
-        elif round_num % 30 == 0 and 201 <= round_num < 251:
-            # Halve the learning rate
-            # new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 1.051
-            new_lr = 0.008
-            config["hyperparameters"]["local_training"]["local_lr"] = new_lr
-            logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
+        # elif round_num % 30 == 0 and 201 <= round_num < 251:
+        #     # Halve the learning rate
+        #     # new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 1.051
+        #     new_lr = 0.008
+        #     config["hyperparameters"]["local_training"]["local_lr"] = new_lr
+        #     logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
             
     elif config["experiment"] == 'MNIST_FMNIST':  # LR scheduler
         # if round_num % 22 == 0 and round_num != 0 and round_num < 31:
