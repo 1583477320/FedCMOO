@@ -232,9 +232,9 @@ def base_config_set(base_config_file_path, experiment, algorithm):
             d["hyperparameters"]["global_lr"] = 0.005
             d["hyperparameters"]["local_training"]["local_lr"] = 0.002
         elif algorithm == "fsmgda_vr":
-            d["hyperparameters"]["global_lr"] = 1.5
-            d["hyperparameters"]["local_training"]["local_lr"] = 0.035
-            d["hyperparameters"]["local_training"]["local_lr_scheduler_flag"] = False
+            d["hyperparameters"]["global_lr"] = 1.6
+            d["hyperparameters"]["local_training"]["local_lr"] = 0.235
+            d["hyperparameters"]["local_training"]["local_lr_scheduler_flag"] = True
 
     elif experiment == "MNIST_FMNIST":
         if algorithm == "fsmgda":
