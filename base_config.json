@@ -35,7 +35,7 @@
                              "count_decoders" : false,
                              "normalize_updates" : false,
                              "compression" : false,
-                              "beta": 0.97,
+                              "beta": 0.99,
                               "lipschitz":0.1}
 },
 "experiment": "MultiMNIST",
@@ -79,7 +79,7 @@
     "val_seed": 42
 },
 "metrics" :{"train_period": 1,
-        "test_period": 5,
+        "test_period": 10,
         "val_period": 10,
         "model_save_period": 0
 },
