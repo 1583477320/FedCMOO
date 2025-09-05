@@ -79,8 +79,8 @@
     "val_seed": 42
 },
 "metrics" :{"train_period": 1,
-        "test_period": 3,
-        "val_period": 3,
+        "test_period": 5,
+        "val_period": 5,
         "model_save_period": 0
 },
 "reload_exp" :{"flag":false,
