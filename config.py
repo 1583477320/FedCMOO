@@ -99,7 +99,7 @@ class Config(object):
                     'nb_of_local_rounds': 10,
                     'local_lr': 0.3,
                     'local_momentum': 0,
-                    "local_lr_scheduler_flag": False
+                    "local_lr_scheduler_flag": True
                 }
             },
             "proposed_approx_extra_upload_d": 1,
