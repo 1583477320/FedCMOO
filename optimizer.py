@@ -134,7 +134,7 @@ def lr_scheduler(config, round_num):
     if config["experiment"] == 'MultiMNIST':  # LR scheduler
         if round_num % 22 == 0 and round_num != 0 and round_num < 31:
             # Halve the learning rate
-            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 0.75
+            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 0.15
             config["hyperparameters"]["local_training"]["local_lr"] = new_lr
             logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
         elif round_num % 30 == 0 and 21 <= round_num < 51:
