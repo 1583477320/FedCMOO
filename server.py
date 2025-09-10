@@ -39,7 +39,7 @@ class Server(object):
         else:
             self.config = config.config
 
-        # You can re-load a previously interrupted experiments 
+        # You can re-load a previously interrupted experiments
         # Not working with new features TO DO: adapt it to new features, e.g. WandB
         # First, reload that experiment's config file
         self.experiment_reloaded = self.config['reload_exp']['flag']
@@ -61,10 +61,11 @@ class Server(object):
             self.DataLoader = TorchDataLoader
 
         # WandB initialization
-        if self.config['wandb']['flag']:
-            self.wandb = __import__('wandb')
-            self.wandb.init(project=self.config['wandb']['wandb_project_name'],
-                            name=self.config['wandb']['wandb_runname'])
+        if self.config['swanlab']['flag']:
+            self.swanlab = __import__('swanlab')
+            self.swanlab.init(workspace=self.config['swanlab']["wandb_workspace"],
+                            project=self.config['swanlab']['wandb_project_name'],
+                            experiment_name=self.config['swanlab']['wandb_runname'])
 
     # Set up server
     def boot(self, use_the_same_dataset_clients=False):
@@ -234,8 +235,8 @@ class Server(object):
             else:
                 raise Exception("!! Error: Unknown method for approximation of covariance of Jacobian matrix !!")
 
-        if self.config['wandb']['flag']:
-            self.wandb.config.update(self.config)
+        if self.config['swanlab']['flag']:
+            self.swanlab.config.update(self.config)
 
     def train(self):
         """Train the global model using federated learning."""
@@ -250,7 +251,7 @@ class Server(object):
         for self.round_num in range(start_round, self.config['max_round']):
             if self.config["hyperparameters"]["local_training"]["local_lr_scheduler_flag"]:  # LR scheduler
                 lr_scheduler(self.config, self.round_num)
-                            
+
             starting_time = time.time()
 
             participating_clients = random.sample(self.clients,
@@ -564,15 +565,15 @@ class Server(object):
 
                 for i, client in enumerate(participating_clients):
                     function = client.local_train(self.config,
-                                                 {key: copy.deepcopy(
-                                                     {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
-                                                     for key in self.model},
-                                                 self.experiment_module, self.tasks,
-                                                 last_model = self.last_model, # 上批次模型
-                                                 last_updates = self.last_updates, # 上批次梯度
-                                                 T=self.round_num,
-                                                 initial_d=False
-                                                 )
+                                                  {key: copy.deepcopy(
+                                                      {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
+                                                      for key in self.model},
+                                                  self.experiment_module, self.tasks,
+                                                  last_model = self.last_model, # 上批次模型
+                                                  last_updates = self.last_updates, # 上批次梯度
+                                                  T=self.round_num,
+                                                  initial_d=False
+                                                  )
                     if self.config["algorithm_args"][self.config["algorithm"]]["compression"]:
                         compression_rate = (self.config["proposed_approx_extra_upload_d"] + 1) / len(self.tasks)
                         if compression_rate < 1:
@@ -586,8 +587,8 @@ class Server(object):
                 # 更新上批次参数
                 self.last_updates = averaged_updates
                 self.last_model = copy.deepcopy({key: copy.deepcopy(
-                                                     {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
-                                                     for key in self.model})
+                    {True: self.model_cuda, False: self.model}[self.boost_w_gpu][key])
+                    for key in self.model})
 
                 # Convert updates to vectors
                 task_vectors = []
@@ -679,7 +680,7 @@ class Server(object):
                 logging.info(log_message.rstrip(', '))
 
                 # Log to WandB
-                if self.config['wandb']['flag']:
+                if self.config['swanlab']['flag']:
                     # Log each task's metrics individually
                     for task in self.tasks:
                         for metric in self.metrics.eval_metrics[task]:
@@ -702,7 +703,7 @@ class Server(object):
                         log_message += f'Task {task} {metric} = {average_total_metrics[task][metric]:.4f}, '
                 logging.info(log_message.rstrip(', '))
                 # Log to WandB
-                if self.config['wandb']['flag']:
+                if self.config['swanlab']['flag']:
                     # Log each task's metrics individually
                     for task in self.tasks:
                         for metric in self.metrics.eval_metrics[task]:
@@ -726,7 +727,7 @@ class Server(object):
                         log_message += f'Task {task} {metric} = {average_total_metrics[task][metric]:.4f}, '
                 logging.info(log_message.rstrip(', '))
                 # Log to WandB
-                if self.config['wandb']['flag']:
+                if self.config['swanlab']['flag']:
                     # Log each task's metrics individually
                     for task in self.tasks:
                         for metric in self.metrics.eval_metrics[task]:
@@ -741,10 +742,10 @@ class Server(object):
                             wandb_log_data[f'test_std_{metric}'] = np.std(task_values)
 
             # Log everything to WandB at once, if there are logs to report
-            if self.config['wandb']['flag'] and wandb_log_data:
+            if self.config['swanlab']['flag'] and wandb_log_data:
                 # Add the round number
                 wandb_log_data['round'] = self.round_num + 1
-                self.wandb.log(wandb_log_data)
+                self.swanlab.log(wandb_log_data)
 
             if self.config['metrics']['model_save_period'] > 0 and (self.round_num + 1) % self.config['metrics'][
                 'model_save_period'] == 0:
