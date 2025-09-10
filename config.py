@@ -78,8 +78,9 @@ class Config(object):
             "exp_identifier": None,
             'nb_of_participating_clients': 20,
             'max_round': 50,
-            'wandb': {
+            'swanlab': {
                 'flag': False,
+                'wandb_workspace':'',
                 'wandb_runname': '',
                 'wandb_project_name': 'default_project',
                 'run_group': ''
