@@ -80,9 +80,9 @@ class Config(object):
             'max_round': 50,
             'swanlab': {
                 'flag': False,
-                'wandb_workspace':'',
-                'wandb_runname': '',
-                'wandb_project_name': 'default_project',
+                'swanlab_workspace':'',
+                'swanlab_runname': '',
+                'swanlab_project_name': 'default_project',
                 'run_group': ''
             },
             'paths': {
@@ -168,11 +168,11 @@ class Config(object):
         if self.config['clients']['partition_seed'] is None:
             self.config['clients']['partition_seed'] = int(np.random.randint(1, 6464))
 
-        if self.config['wandb']['flag']:
-            if not self.config['wandb']['wandb_runname'].split():
-                self.config['wandb']['wandb_runname'] = self.config['exp_identifier']
+        if self.config['swanlab']['flag']:
+            if not self.config['swanlab']['swanlab_runname'].split():
+                self.config['swanlab']['swanlab_runname'] = self.config['exp_identifier']
             elif not self.config['exp_identifier'].split():
-                self.config['exp_identifier'] = self.config['wandb']['wandb_runname']
+                self.config['exp_identifier'] = self.config['swanlab']['swanlab_runname']
 
         # Default experiment history path
 
