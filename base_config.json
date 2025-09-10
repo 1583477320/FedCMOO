@@ -45,9 +45,9 @@
 "nb_of_participating_clients": 10,
 "max_round": 300,
 "swanlab":{"flag": true,
-    "wandb_workspace":"zhaoFMOO",
-    "wandb_runname": "fmsgda_vr",
-    "wandb_project_name": "fmsgda_vr",
+    "swanlab_workspace":"zhaoFMOO",
+    "swanlab_runname": "fmsgda_vr",
+    "swanlab_project_name": "fmsgda_vr",
     "run_group": ""
 },
 "paths": {
