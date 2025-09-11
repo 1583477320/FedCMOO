@@ -196,13 +196,14 @@ def lr_scheduler(config, round_num):
             new_lr = 0.03
             config["hyperparameters"]["local_training"]["local_lr"] = new_lr
             logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
+    
     elif config["experiment"] == 'CIFAR10_MNIST':  # LR scheduler
         if round_num % 22 == 0 and round_num != 0 and round_num < 31:
             # Halve the learning rate
             new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 0.25
             config["hyperparameters"]["local_training"]["local_lr"] = new_lr
             logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
-        else :
+        elif round_num >= 31:
             # Halve the learning rate
             init_lr = config["hyperparameters"]["local_training"]["local_lr"]
             new_lr = sensitive_lr_scheduler(init_lr, 30, 150, drop_period=30, drop_factor=0.5, min_lr=1e-6)
