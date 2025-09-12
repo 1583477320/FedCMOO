@@ -42,7 +42,7 @@
 "exp_identifier": "v1",
 "proposed_approx_extra_upload_d": 1,
 "proposed_approx_method": "randsvd",
-"nb_of_participating_clients": 10,
+"nb_of_participating_clients": 100,
 "max_round": 300,
 "swanlab":{"flag": true,
     "swanlab_workspace":"zhaoFMOO",
