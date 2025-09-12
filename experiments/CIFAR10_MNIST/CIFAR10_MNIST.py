@@ -270,81 +270,82 @@ from torch.autograd import Variable
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 #FedDyn CIFAR-10 model
-class Rep(nn.Module):
-    def __init__(self):
-        super(Rep,self).__init__()
-        self.n_cls = 10
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=64 , kernel_size=5)
-        self.conv2 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.fc1 = nn.Linear(64*5*5, 384) 
-        self.fc2 = nn.Linear(384, 192)
-
-    def forward(self, x, mask):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 64*5*5)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        return x, mask
-
-class Rep(nn.Module):
-    def __init__(self):
-        super(Rep,self).__init__()
-        self.n_cls = 10
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=64 , kernel_size=5)
-        self.conv2 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.fc1 = nn.Linear(64*5*5, 384) 
-        self.fc2 = nn.Linear(384, 192)
-
-    def forward(self, x, mask):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 64*5*5)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        return x, mask
-
-class Rep(nn.Module):
-    def __init__(self):
-        super(Rep,self).__init__()
-        self.n_cls = 10
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=64 , kernel_size=5)
-        self.conv2 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.fc1 = nn.Linear(64*5*5, 384) 
-        self.fc2 = nn.Linear(384, 192)
-
-    def forward(self, x, mask):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 64*5*5)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        return x, mask
-
-class Rep(nn.Module):
-    def __init__(self):
-        super(Rep,self).__init__()
-        self.n_cls = 10
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=64 , kernel_size=3, padding = 1)
-        self.conv2 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding = 1)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.fc1 = nn.Linear(64*8*8, 384) 
-        self.fc2 = nn.Linear(384, 192)
-
-    def forward(self, x, mask):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 64*8*8)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        return x, mask
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+# class Rep(nn.Module):
+#     def __init__(self):
+#         super(Rep,self).__init__()
+#         self.n_cls = 10
+#         self.conv1 = nn.Conv2d(in_channels=3, out_channels=64 , kernel_size=5)
+#         self.conv2 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5)
+#         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+#         self.fc1 = nn.Linear(64*5*5, 384)
+#         self.fc2 = nn.Linear(384, 192)
+#
+#     def forward(self, x, mask):
+#         x = self.pool(F.relu(self.conv1(x)))
+#         x = self.pool(F.relu(self.conv2(x)))
+#         x = x.view(-1, 64*5*5)
+#         x = F.relu(self.fc1(x))
+#         x = F.relu(self.fc2(x))
+#         return x, mask
+#
+#
+# class Rep(nn.Module):
+#     def __init__(self):
+#         super(Rep,self).__init__()
+#         self.n_cls = 10
+#         self.conv1 = nn.Conv2d(in_channels=3, out_channels=64 , kernel_size=5)
+#         self.conv2 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5)
+#         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+#         self.fc1 = nn.Linear(64*5*5, 384)
+#         self.fc2 = nn.Linear(384, 192)
+#
+#     def forward(self, x, mask):
+#         x = self.pool(F.relu(self.conv1(x)))
+#         x = self.pool(F.relu(self.conv2(x)))
+#         x = x.view(-1, 64*5*5)
+#         x = F.relu(self.fc1(x))
+#         x = F.relu(self.fc2(x))
+#         return x, mask
+#
+# class Rep(nn.Module):
+#     def __init__(self):
+#         super(Rep,self).__init__()
+#         self.n_cls = 10
+#         self.conv1 = nn.Conv2d(in_channels=3, out_channels=64 , kernel_size=5)
+#         self.conv2 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5)
+#         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+#         self.fc1 = nn.Linear(64*5*5, 384)
+#         self.fc2 = nn.Linear(384, 192)
+#
+#     def forward(self, x, mask):
+#         x = self.pool(F.relu(self.conv1(x)))
+#         x = self.pool(F.relu(self.conv2(x)))
+#         x = x.view(-1, 64*5*5)
+#         x = F.relu(self.fc1(x))
+#         x = F.relu(self.fc2(x))
+#         return x, mask
+#
+# class Rep(nn.Module):
+#     def __init__(self):
+#         super(Rep,self).__init__()
+#         self.n_cls = 10
+#         self.conv1 = nn.Conv2d(in_channels=3, out_channels=64 , kernel_size=3, padding = 1)
+#         self.conv2 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding = 1)
+#         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+#         self.fc1 = nn.Linear(64*8*8, 384)
+#         self.fc2 = nn.Linear(384, 192)
+#
+#     def forward(self, x, mask):
+#         x = self.pool(F.relu(self.conv1(x)))
+#         x = self.pool(F.relu(self.conv2(x)))
+#         x = x.view(-1, 64*8*8)
+#         x = F.relu(self.fc1(x))
+#         x = F.relu(self.fc2(x))
+#         return x, mask
+#
+# import torch
+# import torch.nn as nn
+# import torch.nn.functional as F
 
 class Rep(nn.Module):
     def __init__(self):
@@ -377,6 +378,12 @@ class Rep(nn.Module):
 
         return x, mask
 
+    def initialize(self):
+        for m in self.modules():
+            # 判断这一层是否为线性层，如果为线性层则初始化权值
+            if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight.data)  # normal: mean=0, std=1
+
 
 class Decoder(nn.Module):
     def __init__(self):
@@ -390,6 +397,12 @@ class Decoder(nn.Module):
         # x = self.dropout(x)
         out = F.log_softmax(x, dim=1)
         return out, mask
+    
+    def initialize(self):
+        for m in self.modules():
+            # 判断这一层是否为线性层，如果为线性层则初始化权值
+            if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight.data)  # normal: mean=0, std=1
 
 
 def get_model(config) -> object:
