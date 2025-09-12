@@ -200,7 +200,7 @@ def lr_scheduler(config, round_num):
     elif config["experiment"] == 'CIFAR10_MNIST':  # LR scheduler
         if round_num % 22 == 0 and round_num != 0 and round_num < 31:
             # Halve the learning rate
-            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 0.85
+            new_lr = config["hyperparameters"]["local_training"]["local_lr"] * 1.15
             config["hyperparameters"]["local_training"]["local_lr"] = new_lr
             logging.info(f"Round {round_num}: Adjusting learning rate to {new_lr:.6f}")
         elif round_num % 30 == 0 and 51 <= round_num < 101:
