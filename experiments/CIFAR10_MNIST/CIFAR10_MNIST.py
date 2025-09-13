@@ -381,8 +381,10 @@ class Rep(nn.Module):
     def initialize(self):
         for m in self.modules():
             # 判断这一层是否为线性层，如果为线性层则初始化权值
-            if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight.data)  # normal: mean=0, std=1
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight.data)  # normal: mean=0, std=1
+            elif isinstance(m, nn.Linear):
+                nn.init.uniform_(m.weight.data)  # normal: mean=0, std=1
 
 
 class Decoder(nn.Module):
