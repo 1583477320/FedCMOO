@@ -203,7 +203,7 @@ class Server(object):
                 self.model[task].initialize()
                 for key, param in self.model[task].state_dict().items():
                     # averaged_updates[task][task][key] = torch.zeros_like(param, device=device)
-                    averaged_updates[task]['rep'][key] = param
+                    averaged_updates[task][task][key] = param
 
             # for i, client in enumerate(self.clients):
             #     function = client.local_train(self.config,
