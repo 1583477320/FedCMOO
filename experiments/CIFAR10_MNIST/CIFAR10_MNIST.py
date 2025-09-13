@@ -402,7 +402,7 @@ class Decoder(nn.Module):
         for m in self.modules():
             # 判断这一层是否为线性层，如果为线性层则初始化权值
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight.data)  # normal: mean=0, std=1
+                nn.init.kaiming_normal_(m.weight.data)  # normal: mean=0, std=1
 
 
 def get_model(config) -> object:
