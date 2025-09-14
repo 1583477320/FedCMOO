@@ -1001,9 +1001,7 @@ class Client(object):
                             out, _ = global_model[task](rep, None)
                             loss = loss_fn[task](out, labels)
                             loss.backward()
-                            print("out stats:", out.min().item(), out.max().item())
-                            print("loss:", loss.item())
-
+                            
                             # 计算上轮次模型的梯度
                             rep, _ = kwargs['last_model']['rep'](images, None)
                             out, _ = kwargs['last_model'][task](rep, None)
