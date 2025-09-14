@@ -903,7 +903,7 @@ class Client(object):
                         {True: device, False: model_device}[boost_w_gpu]) for name in final_task_model[task]} for task
                     in tasks}, 'c_local': c_local_update, 'g_global': g_global, 'c_delta': c_delta}
 
-        if config['algorithm'] in ['fsmgda_vr']:
+        elif config['algorithm'] in ['fsmgda_vr']:
             if kwargs['initial_d'] == True:
                 updates = {t: {'rep': {name: None for name in model_to_dict(global_model['rep'])},
                                t: {name: None for name in model_to_dict(global_model[t])}} for t in tasks}
@@ -1001,6 +1001,8 @@ class Client(object):
                             out, _ = global_model[task](rep, None)
                             loss = loss_fn[task](out, labels)
                             loss.backward()
+                            logging.info("out stats:", out.min().item(), out.max().item())
+                            logging.info("loss:", loss.item())
 
                             # 计算上轮次模型的梯度
                             rep, _ = kwargs['last_model']['rep'](images, None)
