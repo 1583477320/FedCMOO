@@ -194,16 +194,18 @@ class Server(object):
 
             for task in self.tasks:
                 # Initialize the 'rep' part using state_dict
-                self.model['rep'].initialize()
+                # self.model['rep'].initialize()
                 for key, param in self.model['rep'].state_dict().items():
-                    averaged_updates[task]['rep'][key] = param
-                    # averaged_updates[task]['rep'][key] = torch.zeros_like(param, device=device)
+                    # averaged_updates[task]['rep'][key] = param
+                    averaged_updates[task]['rep'][key] = torch.ones_like(param, device=device)
+                    # averaged_updates[task][task][key] = torch.zeros_like(param, device=device)
 
                 # Initialize the task-specific part using state_dict
-                self.model[task].initialize()
+                # self.model[task].initialize()
                 for key, param in self.model[task].state_dict().items():
                     # averaged_updates[task][task][key] = torch.zeros_like(param, device=device)
-                    averaged_updates[task][task][key] = param
+                    averaged_updates[task][task][key] = torch.ones_like(param, device=device)
+                    # averaged_updates[task][task][key] = param
 
             # for i, client in enumerate(self.clients):
             #     function = client.local_train(self.config,
