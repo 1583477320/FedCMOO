@@ -197,7 +197,7 @@ class Server(object):
                 # self.model['rep'].initialize()
                 for key, param in self.model['rep'].state_dict().items():
                     # averaged_updates[task]['rep'][key] = param
-                    averaged_updates[task][task][key] = torch.zeros_like(param, device=device)
+                    averaged_updates[task]['rep'][key] = torch.zeros_like(param, device=device)
 
                 # Initialize the task-specific part using state_dict
                 # self.model[task].initialize()
