@@ -260,7 +260,7 @@ def base_config_set(base_config_file_path, experiment, algorithm):
     elif experiment == "CIFAR10_MNIST":
         if algorithm == "fsmgda_vr":
             d["hyperparameters"]["global_lr"] = 1.8
-            d["hyperparameters"]["local_training"]["local_lr"] = 0.035
+            d["hyperparameters"]["local_training"]["local_lr"] = 0.35
             d["hyperparameters"]["local_training"]["local_lr_scheduler_flag"] = True
         else:
             d["hyperparameters"]["global_lr"] = 1.6
