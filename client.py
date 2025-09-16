@@ -903,9 +903,9 @@ class Client(object):
                         {True: device, False: model_device}[boost_w_gpu]) for name in final_task_model[task]} for task
                     in tasks}, 'c_local': c_local_update, 'g_global': g_global, 'c_delta': c_delta}
 
-        elif config['algorithm'] in ['fsmgda_vr']:
+        if config['algorithm'] in ['fsmgda_vr']:
             if kwargs['initial_d'] == True:
-                updates = {t: {'rep': {name: None for name in model_to_dict(global_model['rep'])},
+                self.updates = {t: {'rep': {name: None for name in model_to_dict(global_model['rep'])},
                                t: {name: None for name in model_to_dict(global_model[t])}} for t in tasks}
 
                 for task in tasks:
@@ -953,26 +953,38 @@ class Client(object):
                             local_update_counter += 1
 
                     for name, param in global_model['rep'].named_parameters():
-                        if updates[task]['rep'][name] is None:
-                            updates[task]['rep'][name] = param.grad.data.to(return_device)/config['hyperparameters']['local_training'][
+                        if self.updates[task]['rep'][name] is None:
+                            self.updates[task]['rep'][name] = param.grad.data.to(return_device)/config['hyperparameters']['local_training'][
                             'nb_of_local_rounds']
                         else:
-                            updates[task]['rep'][name] += param.grad.data.to(return_device)/config['hyperparameters']['local_training'][
+                            self.updates[task]['rep'][name] += param.grad.data.to(return_device)/config['hyperparameters']['local_training'][
                             'nb_of_local_rounds']
 
                     for name, param in global_model[task].named_parameters():
-                        if updates[task][task][name] is None:
-                            updates[task][task][name] = param.grad.data.to(return_device)/config['hyperparameters']['local_training'][
+                        if self.updates[task][task][name] is None:
+                            self.updates[task][task][name] = param.grad.data.to(return_device)/config['hyperparameters']['local_training'][
                             'nb_of_local_rounds']
                         else:
-                            updates[task][task][name] += param.grad.data.to(return_device)/config['hyperparameters']['local_training'][
+                            self.updates[task][task][name] += param.grad.data.to(return_device)/config['hyperparameters']['local_training'][
                             'nb_of_local_rounds']
                     # Reset global model to initial state before starting next task training
                     dict_to_model(global_model['rep'], initial_model)
                     dict_to_model(global_model[task], initial_task_model)
 
-                function_return = {"updates": updates}
+                function_return = {"updates": self.updates}
             else:
+                self.grad_saving_device = {True: 'cuda', False: model_device}[boost_w_gpu and kwargs['save_to_gpu']]
+                for m in global_model:
+                    global_model[m].to(self.grad_saving_device)
+
+                # #### myDel(self.initial_round_gradients)
+                if self.grad_saving_device == 'cuda':
+                    myAttrDel(self, 'initial_round_gradients')
+
+                [reset_gradients(m) for m in [global_model['rep']] + [global_model[task] for task in tasks]]
+                # myDel()
+                # Continue with remaining local rounds
+
                 updates = {t: {'rep': None, t: None} for t in tasks}
                 for temp in updates.keys():
                     updates[temp]['rep'] = None
@@ -1001,7 +1013,7 @@ class Client(object):
                             out, _ = global_model[task](rep, None)
                             loss = loss_fn[task](out, labels)
                             loss.backward()
-                            
+
                             # 计算上轮次模型的梯度
                             rep, _ = kwargs['last_model']['rep'](images, None)
                             out, _ = kwargs['last_model'][task](rep, None)
@@ -1016,12 +1028,16 @@ class Client(object):
                                         1 - config['algorithm_args'][config['algorithm']]['beta']) * (
                                                          d - last_param.grad)
 
+                                param.grad = param.grad * (1/len(tasks))
+
                             for param, last_param, d in zip(global_model[task].parameters(),
                                                             kwargs['last_model'][task].parameters(),
                                                             list(kwargs['last_updates'][task][task].values())):
                                 param.grad = param.grad + (
                                         1 - config['algorithm_args'][config['algorithm']]['beta']) * (
                                                          d - last_param.grad)
+
+                                param.grad = param.grad * (1/len(tasks))
 
                             # Normalize gradients if required
                             if config['algorithm_args'][config['algorithm']]['normalize_local_iters']:
