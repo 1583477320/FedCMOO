@@ -973,6 +973,8 @@ class Client(object):
 
                 function_return = {"updates": self.updates}
             else:
+                current_weight = {task: float(1 / len(tasks)) for i, task in enumerate(tasks)}
+                optimizer_last = self.get_optimizer(config, kwargs['last_model'])
                 self.grad_saving_device = {True: 'cuda', False: model_device}[boost_w_gpu and kwargs['save_to_gpu']]
                 for m in global_model:
                     global_model[m].to(self.grad_saving_device)
@@ -989,35 +991,130 @@ class Client(object):
                 for temp in updates.keys():
                     updates[temp]['rep'] = None
 
-                for task in tasks:
-                    optimizer = self.get_optimizer(config, global_model)
-                    initial_model = model_to_dict(global_model['rep'])
-                    initial_task_model = model_to_dict(global_model[task])
+                # for task in tasks:
+                #     optimizer = self.get_optimizer(config, global_model)
+                #     initial_model = model_to_dict(global_model['rep'])
+                #     initial_task_model = model_to_dict(global_model[task])
+                #
+                #     local_update_counter = 0
+                #     local_updates_finished_flag = False
+                #     while not local_updates_finished_flag:
+                #         for batch in self.dataloader:
+                #             optimizer.zero_grad()
+                #             if local_update_counter == config['hyperparameters']['local_training'][
+                #                 'nb_of_local_rounds']:
+                #                 local_updates_finished_flag = True
+                #                 break
+                #
+                #             images = experiment_module.trainLoopPreprocess(
+                #                 batch[0].to(device))  # if device != config['data']['trainset_device'] else batch[0])
+                #             labels = batch[tasks.index(task) + 1].to(
+                #                 device)  # if device != config['data']['trainset_device'] else batch[tasks.index(task) + 1]
+                #
+                #             rep, _ = global_model['rep'](images, None)
+                #             out, _ = global_model[task](rep, None)
+                #             loss = loss_fn[task](out, labels)
+                #             loss.backward()
+                #
+                #             # 计算上轮次模型的梯度
+                #             rep, _ = kwargs['last_model']['rep'](images, None)
+                #             out, _ = kwargs['last_model'][task](rep, None)
+                #             loss = loss_fn[task](out, labels)
+                #             loss.backward()
+                #
+                            # # config['algorithm_args'][config['algorithm']]['beta'] == 1 / ((kwargs['T'] + 1) ** (2 / 3))
+                            # for param, last_param, d in zip(global_model['rep'].parameters(),
+                            #                                 kwargs['last_model']['rep'].parameters(),
+                            #                                 list(kwargs['last_updates'][task]['rep'].values())):
+                            #     param.grad = param.grad + (
+                            #             1 - config['algorithm_args'][config['algorithm']]['beta']) * (
+                            #                              d - last_param.grad)
+                            #
+                            #     param.grad = param.grad * (1/len(tasks))
+                            #
+                            # for param, last_param, d in zip(global_model[task].parameters(),
+                            #                                 kwargs['last_model'][task].parameters(),
+                            #                                 list(kwargs['last_updates'][task][task].values())):
+                            #     param.grad = param.grad + (
+                            #             1 - config['algorithm_args'][config['algorithm']]['beta']) * (
+                            #                              d - last_param.grad)
+                            #
+                            #     param.grad = param.grad * (1/len(tasks))
+                #
+                #             # Normalize gradients if required
+                #             if config['algorithm_args'][config['algorithm']]['normalize_local_iters']:
+                #                 total_norm = 0.0
+                #                 for name, param in global_model['rep'].named_parameters():
+                #                     if param.grad is not None:
+                #                         total_norm += param.grad.data.norm(2).item() ** 2
+                #                 for name, param in global_model[task].named_parameters():
+                #                     if param.grad is not None:
+                #                         total_norm += param.grad.data.norm(2).item() ** 2
+                #                 total_norm = total_norm ** 0.5
+                #
+                #                 # Normalize gradients
+                #                 for name, param in global_model['rep'].named_parameters():
+                #                     if param.grad is not None:
+                #                         param.grad.data.div_(total_norm)
+                #                 for name, param in global_model[task].named_parameters():
+                #                     if param.grad is not None:
+                #                         param.grad.data.div_(total_norm)
+                #
+                #             optimizer.step()
+                #             local_update_counter += 1
+                #
+                #     with torch.no_grad():
+                #         final_model = model_to_dict(global_model['rep'])
+                #         final_task_model = model_to_dict(global_model[task])
+                #         [reset_gradients(m) for m in [global_model['rep'], global_model[task]]]
+                #         [reset_gradients(m) for m in [kwargs['last_model']['rep'], kwargs['last_model'][task]]]
+                #
+                #         updates[task]['rep'] = {name: (final_model[name] - initial_model[name]).to(return_device) for
+                #                                 name
+                #                                 in final_model}
+                #         updates[task][task] = {
+                #             name: (final_task_model[name] - initial_task_model[name]).to(return_device)
+                #             for name in final_task_model}
+                #
+                #         # Reset global model to initial state before starting next task training
+                #         dict_to_model(global_model['rep'], initial_model)
+                #         dict_to_model(global_model[task], initial_task_model)
+                local_updates_finished_flag, local_update_counter = False, 0
+                initial_model = model_to_dict(global_model['rep'])
+                initial_task_model = {task:model_to_dict(global_model[task]) for task in tasks}
 
-                    local_update_counter = 0
-                    local_updates_finished_flag = False
-                    while not local_updates_finished_flag:
-                        for batch in self.dataloader:
-                            optimizer.zero_grad()
-                            if local_update_counter == config['hyperparameters']['local_training'][
-                                'nb_of_local_rounds']:
-                                local_updates_finished_flag = True
-                                break
+                while not local_updates_finished_flag:
+                    for batch in self.dataloader:
 
-                            images = experiment_module.trainLoopPreprocess(
-                                batch[0].to(device))  # if device != config['data']['trainset_device'] else batch[0])
+                        optimizer.zero_grad()
+                        if local_update_counter == config['hyperparameters']['local_training'][
+                            'nb_of_local_rounds']:
+                            local_updates_finished_flag = True
+                            break
+
+                        task_gradients = {task: {'rep': [], 'task': []} for task in tasks}
+                        if device == 'cuda':
+                            torch.cuda.empty_cache()
+
+                        for task in tasks:
+                            images = experiment_module.trainLoopPreprocess(batch[0].to(
+                                device))  # if device != config['data']['trainset_device'] else batch[0])
                             labels = batch[tasks.index(task) + 1].to(
                                 device)  # if device != config['data']['trainset_device'] else batch[tasks.index(task) + 1]
-
                             rep, _ = global_model['rep'](images, None)
                             out, _ = global_model[task](rep, None)
                             loss = loss_fn[task](out, labels)
-                            loss.backward()
+                            # Zero gradients for this task
+                            optimizer.zero_grad()
+                            # Compute gradients for the task
+                            loss.backward(retain_graph=True)
 
                             # 计算上轮次模型的梯度
                             rep, _ = kwargs['last_model']['rep'](images, None)
                             out, _ = kwargs['last_model'][task](rep, None)
                             loss = loss_fn[task](out, labels)
+                            # Zero gradients for this task
+                            optimizer_last.zero_grad()
                             loss.backward()
 
                             # config['algorithm_args'][config['algorithm']]['beta'] == 1 / ((kwargs['T'] + 1) ** (2 / 3))
@@ -1026,57 +1123,83 @@ class Client(object):
                                                             list(kwargs['last_updates'][task]['rep'].values())):
                                 param.grad = param.grad + (
                                         1 - config['algorithm_args'][config['algorithm']]['beta']) * (
-                                                         d - last_param.grad)
-
-                                param.grad = param.grad * (1/len(tasks))
+                                                     d - last_param.grad)
 
                             for param, last_param, d in zip(global_model[task].parameters(),
                                                             kwargs['last_model'][task].parameters(),
                                                             list(kwargs['last_updates'][task][task].values())):
                                 param.grad = param.grad + (
                                         1 - config['algorithm_args'][config['algorithm']]['beta']) * (
-                                                         d - last_param.grad)
+                                                     d - last_param.grad)
 
-                                param.grad = param.grad * (1/len(tasks))
+                            # Store gradients for 'rep' and task model using state_dict
+                            for name, param in global_model['rep'].state_dict(keep_vars=True).items():
+                                if param.grad is not None:
+                                    # task_gradients[task]['rep'][name] = param.grad.data.clone()
+                                    task_gradients[task]['rep'].append(param.grad.data.clone())
 
-                            # Normalize gradients if required
-                            if config['algorithm_args'][config['algorithm']]['normalize_local_iters']:
+                            for name, param in global_model[task].state_dict(keep_vars=True).items():
+                                if param.grad is not None:
+                                    task_gradients[task]['task'].append(param.grad.data.clone())
+
+                            # 更新累计梯度
+                            with torch.no_grad():
+                                if local_update_counter == config['hyperparameters']['local_training'][
+                                    'nb_of_local_rounds'] - 1:
+                                    optimizer.step()
+                                    final_model = model_to_dict(global_model['rep'])
+                                    final_task_model = model_to_dict(global_model[task])
+                                    [reset_gradients(m) for m in [global_model['rep'], global_model[task]]]
+                                    [reset_gradients(m) for m in
+                                     [kwargs['last_model']['rep'], kwargs['last_model'][task]]]
+
+                                    updates[task]['rep'] = {
+                                        name: (final_model[name] - initial_model[name]).to(return_device) for
+                                        name
+                                        in final_model}
+                                    updates[task][task] = {
+                                        name: (final_task_model[name] - initial_task_model[task][name]).to(return_device)
+                                        for name in final_task_model}
+                                else:
+                                    continue
+
+                        # Reset gradients after saving them
+                        optimizer.zero_grad()
+                        [reset_gradients(global_model[t]) for t in global_model]
+
+                        # Normalize gradients if required
+                        if config['algorithm_args'][config['algorithm']]['normalize_updates']:
+                            for task in tasks:
+                                # Compute L2 norm
                                 total_norm = 0.0
-                                for name, param in global_model['rep'].named_parameters():
-                                    if param.grad is not None:
-                                        total_norm += param.grad.data.norm(2).item() ** 2
-                                for name, param in global_model[task].named_parameters():
-                                    if param.grad is not None:
-                                        total_norm += param.grad.data.norm(2).item() ** 2
+                                for grad in task_gradients[task]['rep']:
+                                    total_norm += grad.norm(2).item() ** 2
+                                if config['algorithm_args'][config['algorithm']]['count_decoders']:
+                                    for grad in task_gradients[task]['task']:
+                                        total_norm += grad.norm(2).item() ** 2
                                 total_norm = total_norm ** 0.5
-
                                 # Normalize gradients
-                                for name, param in global_model['rep'].named_parameters():
-                                    if param.grad is not None:
-                                        param.grad.data.div_(total_norm)
-                                for name, param in global_model[task].named_parameters():
-                                    if param.grad is not None:
-                                        param.grad.data.div_(total_norm)
+                                for grad in task_gradients[task]['rep']:
+                                    grad.div_(total_norm)
+                                for grad in task_gradients[task]['task']:
+                                    grad.div_(total_norm)
 
-                            optimizer.step()
-                            local_update_counter += 1
-
-                    with torch.no_grad():
-                        final_model = model_to_dict(global_model['rep'])
-                        final_task_model = model_to_dict(global_model[task])
-                        [reset_gradients(m) for m in [global_model['rep'], global_model[task]]]
-                        [reset_gradients(m) for m in [kwargs['last_model']['rep'], kwargs['last_model'][task]]]
-
-                        updates[task]['rep'] = {name: (final_model[name] - initial_model[name]).to(return_device) for
-                                                name
-                                                in final_model}
-                        updates[task][task] = {
-                            name: (final_task_model[name] - initial_task_model[name]).to(return_device)
-                            for name in final_task_model}
-
-                        # Reset global model to initial state before starting next task training
-                        dict_to_model(global_model['rep'], initial_model)
-                        dict_to_model(global_model[task], initial_task_model)
+                        # Apply weighted gradients
+                        for task in tasks:
+                            for param, grad in zip(global_model['rep'].parameters(), task_gradients[task]['rep']):
+                                if param.grad is None:
+                                    param.grad = grad * current_weight[task]
+                                else:
+                                    param.grad += grad * current_weight[task]
+                            temp = current_weight[task] if config['algorithm_args'][config['algorithm']][
+                                'scale_decoders'] else 1
+                            for param, grad in zip(global_model[task].parameters(), task_gradients[task]['task']):
+                                if param.grad is None:
+                                    param.grad = grad * temp
+                                else:
+                                    param.grad += grad * temp
+                        optimizer.step()
+                        local_update_counter += 1
 
                 function_return = {"updates": updates}
 
