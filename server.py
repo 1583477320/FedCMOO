@@ -355,6 +355,9 @@ class Server(object):
 
                 # Update idea adapted from https://github.com/OptMN-Lab/sdmgrad/blob/main/methods/weight_methods.py#L770
                 self.fedcmoo_update_scales(torch.tensor(G_T_G_estimate))
+
+                self.scales = {task: float(1 / len(self.tasks)) for i, task in enumerate(self.tasks)}
+                
                 algorithm_specific_log += f' Scales: ' + ', '.join(
                     [f'{task}: {self.scales[task]:.4f}' for task in self.scales])
 
