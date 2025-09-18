@@ -46,8 +46,8 @@
 "max_round": 300,
 "swanlab":{"flag": true,
     "swanlab_workspace":"zhaoFMOO",
-    "swanlab_runname": "fmsgda_vr",
-    "swanlab_project_name": "fmsgda_vr",
+    "swanlab_runname": "MultiMNIST",
+    "swanlab_project_name": "MultiMNIST",
     "run_group": ""
 },
 "paths": {
