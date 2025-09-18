@@ -987,8 +987,9 @@ class Client(object):
                 # myDel()
                 # Continue with remaining local rounds
 
-                updates = {t: {'rep': {name: torch.zeros_like(param) for name, param in global_model['rep'].named_parameters()},
-                               t: {name: torch.zeros_like(param) for name, param in global_model[t].named_parameters()}} for t in tasks}
+                updates = {t: {'rep': None, t: None} for t in tasks}
+                for temp in updates.keys():
+                    updates[temp]['rep'] = None
 
                 # for task in tasks:
                 #     optimizer = self.get_optimizer(config, global_model)
@@ -1136,34 +1137,31 @@ class Client(object):
                                 if param.grad is not None:
                                     # task_gradients[task]['rep'][name] = param.grad.data.clone()
                                     task_gradients[task]['rep'].append(param.grad.data.clone())
-                                    updates[task]['rep'][name] += param.grad.data.clone()
 
                             for name, param in global_model[task].state_dict(keep_vars=True).items():
                                 if param.grad is not None:
                                     task_gradients[task]['task'].append(param.grad.data.clone())
-                                    updates[task][task][name] += param.grad.data.clone()
 
-                            # # 更新累计梯度
-                            # with torch.no_grad():
-                            #     if local_update_counter == config['hyperparameters']['local_training'][
-                            #         'nb_of_local_rounds'] - 1:
-                            #         optimizer.step()
-                            #         final_model = model_to_dict(global_model['rep'])
-                            #         final_task_model = model_to_dict(global_model[task])
-                            #         [reset_gradients(m) for m in [global_model['rep'], global_model[task]]]
-                            #         [reset_gradients(m) for m in
-                            #          [kwargs['last_model']['rep'], kwargs['last_model'][task]]]
-                            #
-                            #         updates[task]['rep'] = {
-                            #             name: (final_model[name] - initial_model[name]).to(return_device) for
-                            #             name
-                            #             in final_model}
-                            #         updates[task][task] = {
-                            #             name: (final_task_model[name] - initial_task_model[task][name]).to(return_device)
-                            #             for name in final_task_model}
-                            #         break
-                            #     else:
-                            #         continue
+                            # 更新累计梯度
+                            with torch.no_grad():
+                                if local_update_counter == config['hyperparameters']['local_training'][
+                                    'nb_of_local_rounds'] - 1:
+                                    optimizer.step()
+                                    final_model = model_to_dict(global_model['rep'])
+                                    final_task_model = model_to_dict(global_model[task])
+                                    [reset_gradients(m) for m in [global_model['rep'], global_model[task]]]
+                                    [reset_gradients(m) for m in
+                                     [kwargs['last_model']['rep'], kwargs['last_model'][task]]]
+
+                                    updates[task]['rep'] = {
+                                        name: (final_model[name] - initial_model[name]).to(return_device) for
+                                        name
+                                        in final_model}
+                                    updates[task][task] = {
+                                        name: (final_task_model[name] - initial_task_model[task][name]).to(return_device)
+                                        for name in final_task_model}
+                                else:
+                                    continue
 
                         # Reset gradients after saving them
                         optimizer.zero_grad()
