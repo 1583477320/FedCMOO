@@ -589,7 +589,7 @@ class Server(object):
 
                 # Normalize updates
                 averaged_updates = normalize_updates(averaged_updates, self.tasks, self.config)
-                logging.info(averaged_updates['C']['rep']['fc2.weight'].data.norm().item())
+                # logging.info(averaged_updates['C']['rep']['fc2.weight'].data.norm().item())
                 
                 # 更新上批次参数
                 self.last_updates = averaged_updates
