@@ -813,33 +813,41 @@ def top_k_compression_dict(data, compression_rate=1):
     
     return data
 
-def TwoVectorWeightOptimizer(G_list: list[torch.Tensor]) -> torch.Tensor:
-    """
-    输入两个向量（形状 (1, d)），输出两个权重
-    Args:
-        G_list: [g1, g2]，每个 g 的形状 (1, d)
-    Returns:
-        w: 形状 (2,) 的权重，满足 sum(w)=1
-    """
-    assert len(G_list) == 2, "只能输入两个向量"
+import cvxpy as cp
 
-    # 堆叠成矩阵 G: (d, 2)
-    G = torch.cat(G_list, dim=0).T  # (d, 2)
+class TwoVectorWeightOptimizer:
+    def __init__(self, normalize=True):
+        """
+        Args:
+            normalize: 是否对输入向量做归一化
+        """
+        self.normalize = normalize
 
-    # 计算 A = G^T @ G  -> (2, 2)
-    A = G.T @ G
+    def optimize(self, G_list: list[torch.Tensor]) -> torch.Tensor:
+        """
+        输入两个向量 (1, d)，输出两个非负权重，sum(w)=1
+        Args:
+            G_list: [g1, g2]，每个 g 的形状 (1, d)
+        Returns:
+            w: 形状 (2,) 的权重
+        """
+        assert len(G_list) == 2, "只能输入两个向量"
 
-    # 构造全 1 向量
-    ones = torch.ones(2, device=G.device, dtype=G.dtype)
+        # ---- Step 1: 向量归一化 ----
+        if self.normalize:
+            G_list = [g / (g.norm() + 1e-8) for g in G_list]
 
-    # 解线性方程组 A v = ones
-    try:
-        v = torch.linalg.solve(A, ones)
-    except RuntimeError:  # A 奇异时用伪逆
-        A_pinv = torch.linalg.pinv(A)
-        v = A_pinv @ ones
+        # ---- Step 2: 组装矩阵 G (d, 2) ----
+        G = torch.cat(G_list, dim=0).T  # (d, 2)
+        A = (G.T @ G).cpu().numpy()     # (2, 2)，转 numpy 方便给 cvxpy
 
-    # 归一化，使 sum(w)=1
-    w = v / v.sum()
-    return w
+        # ---- Step 3: 构建 QP 问题 ----
+        w = cp.Variable(2)
+        objective = cp.Minimize(cp.quad_form(w, A))  # 最小化 ||G w||^2
+        constraints = [cp.sum(w) == 1, w >= 0]       # 约束：非负 + 和为 1
+        prob = cp.Problem(objective, constraints)
+        prob.solve()
+
+        # ---- Step 4: 返回 torch.Tensor ----
+        return torch.tensor(w.value, dtype=G_list[0].dtype, device=G_list[0].device)
 
