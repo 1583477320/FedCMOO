@@ -816,12 +816,14 @@ def top_k_compression_dict(data, compression_rate=1):
 import cvxpy as cp
 
 class TwoVectorWeightOptimizer:
-    def __init__(self, normalize=True):
+    def __init__(self, alpha=0.5, reg=0.0):
         """
         Args:
-            normalize: 是否对输入向量做归一化
+            alpha: 范数缩放指数 (0 = 不归一化, 1 = 完全归一化, 0~1 = 部分归一化)
+            reg: 正则系数 (避免对称解)
         """
-        self.normalize = normalize
+        self.alpha = alpha
+        self.reg = reg
 
     def optimize(self, G_list: list[torch.Tensor]) -> torch.Tensor:
         """
@@ -833,18 +835,21 @@ class TwoVectorWeightOptimizer:
         """
         assert len(G_list) == 2, "只能输入两个向量"
 
-        # ---- Step 1: 向量归一化 ----
-        if self.normalize:
-            G_list = [g / (g.norm() + 1e-8) for g in G_list]
+        # ---- Step 1: 范数缩放归一化 ----
+        processed = []
+        for g in G_list:
+            norm = g.norm() + 1e-8
+            g_scaled = g / (norm ** self.alpha)  # 部分保留范数
+            processed.append(g_scaled)
 
         # ---- Step 2: 组装矩阵 G (d, 2) ----
-        G = torch.cat(G_list, dim=0).T  # (d, 2)
-        A = (G.T @ G).cpu().numpy()     # (2, 2)，转 numpy 方便给 cvxpy
+        G = torch.cat(processed, dim=0).T  # (d, 2)
+        A = (G.T @ G).cpu().numpy()        # (2, 2)
 
         # ---- Step 3: 构建 QP 问题 ----
         w = cp.Variable(2)
-        objective = cp.Minimize(cp.quad_form(w, A))  # 最小化 ||G w||^2
-        constraints = [cp.sum(w) == 1, w >= 0]       # 约束：非负 + 和为 1
+        objective = cp.Minimize(cp.quad_form(w, A) + self.reg * cp.sum_squares(w))
+        constraints = [cp.sum(w) == 1, w >= 0]
         prob = cp.Problem(objective, constraints)
         prob.solve()
 
