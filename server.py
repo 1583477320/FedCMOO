@@ -40,7 +40,7 @@ class Server(object):
             self.config = config.config
 
         # You can re-load a previously interrupted experiments
-        # Not working with new features TO DO: adapt it to new features, e.g. WandB
+        # Not working with new features TO DO: adapt it to new features, e.g. swanlab
         # First, reload that experiment's config file
         self.experiment_reloaded = self.config['reload_exp']['flag']
         if self.config['reload_exp']['flag'] is True:
@@ -60,12 +60,12 @@ class Server(object):
             from torch.utils.data import DataLoader as TorchDataLoader
             self.DataLoader = TorchDataLoader
 
-        # WandB initialization
+        # swanlab initialization
         if self.config['swanlab']['flag']:
             self.swanlab = __import__('swanlab')
-            self.swanlab.init(workspace=self.config['swanlab']["wandb_workspace"],
-                            project=self.config['swanlab']['wandb_project_name'],
-                            experiment_name=self.config['swanlab']['wandb_runname'])
+            self.swanlab.init(workspace=self.config['swanlab']["swanlab_workspace"],
+                            project=self.config['swanlab']['swanlab_project_name'],
+                            experiment_name=self.config['swanlab']['swanlab_runname'])
 
     # Set up server
     def boot(self, use_the_same_dataset_clients=False):
@@ -355,10 +355,10 @@ class Server(object):
 
                 # Update idea adapted from https://github.com/OptMN-Lab/sdmgrad/blob/main/methods/weight_methods.py#L770
                 self.fedcmoo_update_scales(torch.tensor(G_T_G_estimate))
+                
                 algorithm_specific_log += f' Scales: ' + ', '.join(
                     [f'{task}: {self.scales[task]:.4f}' for task in self.scales])
 
-                self.scales = {task: float(1 / len(self.tasks)) for i, task in enumerate(self.tasks)}
                 # Now continue the remaining local rounds
                 # Initialize averaged_updates
                 averaged_updates = {'rep': {}, **{task: {} for task in self.tasks}}
@@ -589,7 +589,8 @@ class Server(object):
 
                 # Normalize updates
                 averaged_updates = normalize_updates(averaged_updates, self.tasks, self.config)
-
+                # logging.info(averaged_updates['C']['rep']['fc2.weight'].data.norm().item())
+                
                 # 更新上批次参数
                 self.last_updates = averaged_updates
                 self.last_model = copy.deepcopy({key: copy.deepcopy(
@@ -600,7 +601,7 @@ class Server(object):
                 task_vectors = []
                 for task in self.tasks:
                     combined_vector = []
-                    if self.config['algorithm_args']['fsmgda_vr']['count_decoders']:
+                    if self.config['algorithm_args']['fsmgda']['count_decoders']:
                         for key in averaged_updates[task]['rep']:
                             combined_vector.append(averaged_updates[task]['rep'][key].view(-1))
                         for key in averaged_updates[task][task]:
@@ -631,8 +632,8 @@ class Server(object):
 
 
 
-            # Initialize an empty dictionary to collect all WandB logs
-            wandb_log_data = {}
+            # Initialize an empty dictionary to collect all swanlab logs
+            swanlab_log_data = {}
 
             # Evaluate train, validation, and testing metrics
             if self.config['metrics']['train_period'] > 0 and (self.round_num + 1) % self.config['metrics'][
@@ -685,19 +686,19 @@ class Server(object):
                         log_message += f'Task {task} {metric} = {average_total_metrics[task][metric]:.4f}, '
                 logging.info(log_message.rstrip(', '))
 
-                # Log to WandB
+                # Log to swanlab
                 if self.config['swanlab']['flag']:
                     # Log each task's metrics individually
                     for task in self.tasks:
                         for metric in self.metrics.eval_metrics[task]:
-                            wandb_log_data[f'train_{task}_{metric}'] = average_total_metrics[task][metric]
+                            swanlab_log_data[f'train_{task}_{metric}'] = average_total_metrics[task][metric]
                     # Compute mean and std across tasks for all metrics
                     for metric in set([metric for task in self.tasks for metric in self.metrics.eval_metrics[task]]):
                         task_values = [average_total_metrics[task][metric] for task in self.tasks if
                                        metric in self.metrics.eval_metrics[task]]
                         if task_values:  # Only log if there are valid tasks with this metric
-                            wandb_log_data[f'train_mean_{metric}'] = np.mean(task_values)
-                            wandb_log_data[f'train_std_{metric}'] = np.std(task_values)
+                            swanlab_log_data[f'train_mean_{metric}'] = np.mean(task_values)
+                            swanlab_log_data[f'train_std_{metric}'] = np.std(task_values)
 
             if self.config['metrics']['val_period'] > 0 and self.val_loader and (self.round_num + 1) % \
                     self.config['metrics']['val_period'] == 0:
@@ -708,20 +709,20 @@ class Server(object):
                     for metric in self.metrics.eval_metrics[task]:
                         log_message += f'Task {task} {metric} = {average_total_metrics[task][metric]:.4f}, '
                 logging.info(log_message.rstrip(', '))
-                # Log to WandB
+                # Log to swanlab
                 if self.config['swanlab']['flag']:
                     # Log each task's metrics individually
                     for task in self.tasks:
                         for metric in self.metrics.eval_metrics[task]:
-                            wandb_log_data[f'val_{task}_{metric}'] = average_total_metrics[task][metric]
+                            swanlab_log_data[f'val_{task}_{metric}'] = average_total_metrics[task][metric]
 
                     # Compute mean and std across tasks for all metrics
                     for metric in set([metric for task in self.tasks for metric in self.metrics.eval_metrics[task]]):
                         task_values = [average_total_metrics[task][metric] for task in self.tasks if
                                        metric in self.metrics.eval_metrics[task]]
                         if task_values:  # Only log if there are valid tasks with this metric
-                            wandb_log_data[f'val_mean_{metric}'] = np.mean(task_values)
-                            wandb_log_data[f'val_std_{metric}'] = np.std(task_values)
+                            swanlab_log_data[f'val_mean_{metric}'] = np.mean(task_values)
+                            swanlab_log_data[f'val_std_{metric}'] = np.std(task_values)
 
             if self.config['metrics']['test_period'] > 0 and (self.round_num + 1) % self.config['metrics'][
                 'test_period'] == 0:
@@ -732,26 +733,26 @@ class Server(object):
                     for metric in self.metrics.eval_metrics[task]:
                         log_message += f'Task {task} {metric} = {average_total_metrics[task][metric]:.4f}, '
                 logging.info(log_message.rstrip(', '))
-                # Log to WandB
+                # Log to swanlab
                 if self.config['swanlab']['flag']:
                     # Log each task's metrics individually
                     for task in self.tasks:
                         for metric in self.metrics.eval_metrics[task]:
-                            wandb_log_data[f'test_{task}_{metric}'] = average_total_metrics[task][metric]
+                            swanlab_log_data[f'test_{task}_{metric}'] = average_total_metrics[task][metric]
 
                     # Compute mean and std across tasks for all metrics
                     for metric in set([metric for task in self.tasks for metric in self.metrics.eval_metrics[task]]):
                         task_values = [average_total_metrics[task][metric] for task in self.tasks if
                                        metric in self.metrics.eval_metrics[task]]
                         if task_values:  # Only log if there are valid tasks with this metric
-                            wandb_log_data[f'test_mean_{metric}'] = np.mean(task_values)
-                            wandb_log_data[f'test_std_{metric}'] = np.std(task_values)
+                            swanlab_log_data[f'test_mean_{metric}'] = np.mean(task_values)
+                            swanlab_log_data[f'test_std_{metric}'] = np.std(task_values)
 
-            # Log everything to WandB at once, if there are logs to report
-            if self.config['swanlab']['flag'] and wandb_log_data:
+            # Log everything to swanlab at once, if there are logs to report
+            if self.config['swanlab']['flag'] and swanlab_log_data:
                 # Add the round number
-                wandb_log_data['round'] = self.round_num + 1
-                self.swanlab.log(wandb_log_data)
+                swanlab_log_data['round'] = self.round_num + 1
+                self.swanlab.log(swanlab_log_data)
 
             if self.config['metrics']['model_save_period'] > 0 and (self.round_num + 1) % self.config['metrics'][
                 'model_save_period'] == 0:
