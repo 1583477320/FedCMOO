@@ -613,7 +613,8 @@ class Server(object):
 
                 # Frank-Wolfe iteration to compute scales
                 try:
-                    sol = TwoVectorWeightOptimizer(task_vectors)
+                    weighted_optimizer = TwoVectorWeightOptimizer()
+                    sol = weighted_optimizer.optimize(task_vectors)
                 except:
                     logging.info('\nException: MinNormSolver failed!\n')
                     sol = [1 / len(self.tasks) for _ in self.tasks]
