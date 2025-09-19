@@ -178,7 +178,7 @@ def normalize_updates(updates, tasks, config):
         return vector
     if normalization_type not in ['L1', 'L2']:
         return updates
-    if config['algorithm'] in ['fsmgda','fsmgda_vr']:
+    if config['algorithm'] in ['fsmgda']:
         # # Create a deep copy of the updates to ensure the original is not modified
         normalized_updates = dict()
         for task in tasks:
@@ -812,4 +812,34 @@ def top_k_compression_dict(data, compression_rate=1):
                 index += tensor_size
     
     return data
+
+def TwoVectorWeightOptimizer(G_list: list[torch.Tensor]) -> torch.Tensor:
+    """
+    输入两个向量（形状 (1, d)），输出两个权重
+    Args:
+        G_list: [g1, g2]，每个 g 的形状 (1, d)
+    Returns:
+        w: 形状 (2,) 的权重，满足 sum(w)=1
+    """
+    assert len(G_list) == 2, "只能输入两个向量"
+
+    # 堆叠成矩阵 G: (d, 2)
+    G = torch.cat(G_list, dim=0).T  # (d, 2)
+
+    # 计算 A = G^T @ G  -> (2, 2)
+    A = G.T @ G
+
+    # 构造全 1 向量
+    ones = torch.ones(2, device=G.device, dtype=G.dtype)
+
+    # 解线性方程组 A v = ones
+    try:
+        v = torch.linalg.solve(A, ones)
+    except RuntimeError:  # A 奇异时用伪逆
+        A_pinv = torch.linalg.pinv(A)
+        v = A_pinv @ ones
+
+    # 归一化，使 sum(w)=1
+    w = v / v.sum()
+    return w
 
