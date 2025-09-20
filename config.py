@@ -226,7 +226,7 @@ def base_config_set(base_config_file_path, experiment, algorithm):
             d["hyperparameters"]["local_training"]["local_lr_scheduler_flag"] = False
         elif algorithm == "fedcmoo":
             d["hyperparameters"]["global_lr"] = 1.0
-            d["hyperparameters"]["local_training"]["local_lr"] = 0.25
+            d["hyperparameters"]["local_training"]["local_lr"] = 0.5
             d["hyperparameters"]["local_training"]["local_lr_scheduler_flag"] = False
         elif algorithm == "fedcmoo_pref":
             d["hyperparameters"]["global_lr"] = 1.6
