@@ -44,7 +44,7 @@
 "proposed_approx_method": "randsvd",
 "nb_of_participating_clients": 100,
 "max_round": 300,
-"swanlab":{"flag": true,
+"swanlab":{"flag": false,
     "swanlab_workspace":"zhaoFMOO",
     "swanlab_runname": "MultiMNIST",
     "swanlab_project_name": "MultiMNIST",
