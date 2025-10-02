@@ -92,48 +92,50 @@ class Client(object):
         total_loss = 0.0
         total_correct = 0
         total_samples = 0
-
+        loss_list = []
+        acc_list = []
         loss_fn = experiment_module.get_loss()
 
         for m in global_model:
             global_model[m].eval()
 
         with torch.no_grad():
-            for batch in self.dataloader:
-                images = experiment_module.trainLoopPreprocess(batch[0].to(device))
+            batch = next(iter(self.dataloader))
+            images = experiment_module.trainLoopPreprocess(batch[0].to(device))
 
-                # 计算每个任务的损失和准确率
-                batch_loss = 0.0
-                batch_correct = 0
-                batch_samples = 0
+            # 计算每个任务的损失和准确率
+            batch_loss = 0.0
+            batch_correct = 0
+            batch_samples = 0
 
-                for task in tasks:
-                    labels = batch[tasks.index(task) + 1].to(device)
-                    rep, _ = global_model['rep'](images, None)
-                    out, _ = global_model[task](rep, None)
+            for task in tasks:
+                labels = batch[tasks.index(task) + 1].to(device)
+                rep, _ = global_model['rep'](images, None)
+                out, _ = global_model[task](rep, None)
 
-                    # 计算损失
-                    loss = loss_fn[task](out, labels)
-                    batch_loss += loss.item()
-
-                    # 计算准确率
-                    _, predicted = torch.max(out.data, 1)
-                    batch_correct += (predicted == labels).sum().item()
-                    batch_samples += labels.size(0)
+                # 计算损失
+                loss = loss_fn[task](out, labels)
+                batch_loss += loss.item()
+                loss_list.append(batch_loss)
+                # 计算准确率
+                _, predicted = torch.max(out.data, 1)
+                batch_correct += (predicted == labels).sum().item()
+                batch_samples += labels.size(0)
+                batch_acc = batch_correct/batch_samples
+                acc_list.append(batch_acc)
 
                 total_loss += batch_loss / len(tasks)  # 平均任务损失
-                total_correct += batch_correct / len(tasks)  # 平均任务准确率
-                total_samples += batch_samples / len(tasks)
+                total_correct += batch_acc / len(tasks)  # 平均任务准确率
 
-        avg_loss = total_loss / len(self.dataloader)
-        avg_accuracy = total_correct / total_samples if total_samples > 0 else 0.0
+        avg_loss = total_loss
+        avg_accuracy = total_correct
 
         # 恢复原始模型状态
         for m in global_model:
             global_model[m].load_state_dict(original_states[m])
             global_model[m].train()
 
-        return avg_loss, avg_accuracy
+        return avg_loss, avg_accuracy, loss_list,acc_list
 
     def local_train(self, config, global_model, experiment_module, tasks, **kwargs):
         model_device = config['model_device']
@@ -143,7 +145,7 @@ class Client(object):
         # 记录训练开始时的性能
         algorithm = config['algorithm']
         if algorithm in ['fsmgda', 'fedcmoo', 'fsmgda_vr']:
-            start_loss, start_acc = self.evaluate_local_performance(global_model, experiment_module, tasks, config)
+            start_loss, start_acc,start_loss_list,start_acc_list = self.evaluate_local_performance(global_model, experiment_module, tasks, config)
 
         optimizer = self.get_optimizer(config, global_model)
         loss_fn = experiment_module.get_loss()
@@ -152,8 +154,9 @@ class Client(object):
             updates = {t: {'rep': None, t: None} for t in tasks}
             for temp in updates.keys():
                 updates[temp]['rep'] = None
-
-            for task in tasks:
+            batch_loss = 0.0
+            batch_correct = 0
+            for i,task in enumerate(tasks):
                 optimizer = self.get_optimizer(config, global_model)
                 initial_model = model_to_dict(global_model['rep'])
                 initial_task_model = model_to_dict(global_model[task])
@@ -204,16 +207,42 @@ class Client(object):
                     final_task_model = model_to_dict(global_model[task])
                     [reset_gradients(m) for m in [global_model['rep'], global_model[task]]]
 
+
                     updates[task]['rep'] = {name: (final_model[name] - initial_model[name]).to(return_device) for name
                                             in final_model}
                     updates[task][task] = {name: (final_task_model[name] - initial_task_model[name]).to(return_device)
                                            for name in final_task_model}
+                    end_loss, end_acc, end_loss_list, end_acc_list = self.evaluate_local_performance(
+                        global_model, experiment_module, tasks, config)
+                    batch_loss += end_loss_list[i]/len(tasks)
+                    batch_correct += end_acc_list[i]/len(tasks)
 
                     # Reset global model to initial state before starting next task training
                     dict_to_model(global_model['rep'], initial_model)
                     dict_to_model(global_model[task], initial_task_model)
 
+            end_loss = batch_loss
+            end_acc = batch_correct
+            # 计算损失减少和准确率提升
+            loss_reduction = start_loss - end_loss
+            acc_improvement = end_acc - start_acc
+
+            # 存储训练进度
+            self.training_progress[algorithm]['loss_reductions'].append(loss_reduction)
+            self.training_progress[algorithm]['acc_improvements'].append(acc_improvement)
+
             function_return = updates
+
+            # 返回训练进度数据
+            if isinstance(function_return, dict):
+                function_return['training_progress'] = {
+                    'loss_reduction': loss_reduction,
+                    'acc_improvement': acc_improvement,
+                    'start_loss': start_loss,
+                    'start_acc': start_acc,
+                    'end_loss': end_loss,
+                    'end_acc': end_acc
+                }
 
         elif config['algorithm'] == 'fedcmoo':
             current_weight = kwargs['current_weight']
@@ -1272,8 +1301,7 @@ class Client(object):
                 function_return = {"updates": updates}
 
         # 在训练结束后记录性能
-        if algorithm in ['fsmgda', 'fedcmoo', 'fsmgda_vr']:
-            end_loss, end_acc = self.evaluate_local_performance(global_model, experiment_module, tasks, config)
+        if algorithm in ['fedcmoo', 'fsmgda_vr']:
 
             # 计算损失减少和准确率提升
             loss_reduction = start_loss - end_loss
@@ -1295,4 +1323,3 @@ class Client(object):
                 }
 
         return function_return
-
