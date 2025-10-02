@@ -1293,11 +1293,6 @@ class Client(object):
                     'end_loss': end_loss,
                     'end_acc': end_acc
                 }
-            else:
-                # 对于返回元组的情况，扩展返回结果
-                function_return = (function_return, {
-                    'loss_reduction': loss_reduction,
-                    'acc_improvement': acc_improvement
-                })
 
         return function_return
+
