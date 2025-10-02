@@ -103,11 +103,6 @@ class Client(object):
             batch = next(iter(self.dataloader))
             images = experiment_module.trainLoopPreprocess(batch[0].to(device))
 
-            # 计算每个任务的损失和准确率
-            batch_loss = 0.0
-            batch_correct = 0
-            batch_samples = 0
-
             for task in tasks:
                 labels = batch[tasks.index(task) + 1].to(device)
                 rep, _ = global_model['rep'](images, None)
@@ -115,12 +110,12 @@ class Client(object):
 
                 # 计算损失
                 loss = loss_fn[task](out, labels)
-                batch_loss += loss.item()
+                batch_loss = loss.item()
                 loss_list.append(batch_loss)
                 # 计算准确率
                 _, predicted = torch.max(out.data, 1)
-                batch_correct += (predicted == labels).sum().item()
-                batch_samples += labels.size(0)
+                batch_correct = (predicted == labels).sum().item()
+                batch_samples = labels.size(0)
                 batch_acc = batch_correct/batch_samples
                 acc_list.append(batch_acc)
 
@@ -1324,4 +1319,5 @@ class Client(object):
                 }
 
         return function_return
+
 
