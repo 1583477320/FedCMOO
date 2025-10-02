@@ -17,7 +17,12 @@ class Client(object):
 
     def __init__(self, client_id):
         self.client_id = client_id
-
+        # 添加训练进度跟踪
+        self.training_progress = {
+            'fsmgda': {'loss_reductions': [], 'acc_improvements': []},
+            'fedcmoo': {'loss_reductions': [], 'acc_improvements': []},
+            'fsmgda_vr': {'loss_reductions': [], 'acc_improvements': []}
+        }
     def __repr__(self):
         return 'Client #{}\n'.format(self.client_id)
 
@@ -72,10 +77,73 @@ class Client(object):
             optimizer = torch.optim.SGD(model_params, lr=lr, momentum=momentum)
         return optimizer
 
+    def evaluate_local_performance(self, global_model, experiment_module, tasks, config):
+        """评估模型在本地数据上的性能"""
+        model_device = config['model_device']
+        boost_w_gpu = True if device == 'cuda' and model_device != 'cuda' else False
+        return_device = 'cuda' if (model_device == 'cuda' or boost_w_gpu) else 'cpu'
+
+        # 临时保存原始模型状态
+        original_states = {}
+        for m in global_model:
+            original_states[m] = copy.deepcopy(global_model[m].state_dict())
+
+        # 评估性能
+        total_loss = 0.0
+        total_correct = 0
+        total_samples = 0
+
+        loss_fn = experiment_module.get_loss()
+
+        for m in global_model:
+            global_model[m].eval()
+
+        with torch.no_grad():
+            for batch in self.dataloader:
+                images = experiment_module.trainLoopPreprocess(batch[0].to(device))
+
+                # 计算每个任务的损失和准确率
+                batch_loss = 0.0
+                batch_correct = 0
+                batch_samples = 0
+
+                for task in tasks:
+                    labels = batch[tasks.index(task) + 1].to(device)
+                    rep, _ = global_model['rep'](images, None)
+                    out, _ = global_model[task](rep, None)
+
+                    # 计算损失
+                    loss = loss_fn[task](out, labels)
+                    batch_loss += loss.item()
+
+                    # 计算准确率
+                    _, predicted = torch.max(out.data, 1)
+                    batch_correct += (predicted == labels).sum().item()
+                    batch_samples += labels.size(0)
+
+                total_loss += batch_loss / len(tasks)  # 平均任务损失
+                total_correct += batch_correct / len(tasks)  # 平均任务准确率
+                total_samples += batch_samples / len(tasks)
+
+        avg_loss = total_loss / len(self.dataloader)
+        avg_accuracy = total_correct / total_samples if total_samples > 0 else 0.0
+
+        # 恢复原始模型状态
+        for m in global_model:
+            global_model[m].load_state_dict(original_states[m])
+            global_model[m].train()
+
+        return avg_loss, avg_accuracy
+
     def local_train(self, config, global_model, experiment_module, tasks, **kwargs):
         model_device = config['model_device']
         boost_w_gpu = True if device == 'cuda' and model_device != 'cuda' else False
         return_device = 'cuda' if (model_device == 'cuda' or boost_w_gpu) else 'cpu'
+
+        # 记录训练开始时的性能
+        algorithm = config['algorithm']
+        if algorithm in ['fsmgda', 'fedcmoo', 'fsmgda_vr']:
+            start_loss, start_acc = self.evaluate_local_performance(global_model, experiment_module, tasks, config)
 
         optimizer = self.get_optimizer(config, global_model)
         loss_fn = experiment_module.get_loss()
@@ -1202,5 +1270,34 @@ class Client(object):
                         local_update_counter += 1
 
                 function_return = {"updates": updates}
+
+        # 在训练结束后记录性能
+        if algorithm in ['fsmgda', 'fedcmoo', 'fsmgda_vr']:
+            end_loss, end_acc = self.evaluate_local_performance(global_model, experiment_module, tasks, config)
+
+            # 计算损失减少和准确率提升
+            loss_reduction = start_loss - end_loss
+            acc_improvement = end_acc - start_acc
+
+            # 存储训练进度
+            self.training_progress[algorithm]['loss_reductions'].append(loss_reduction)
+            self.training_progress[algorithm]['acc_improvements'].append(acc_improvement)
+
+            # 返回训练进度数据
+            if isinstance(function_return, dict):
+                function_return['training_progress'] = {
+                    'loss_reduction': loss_reduction,
+                    'acc_improvement': acc_improvement,
+                    'start_loss': start_loss,
+                    'start_acc': start_acc,
+                    'end_loss': end_loss,
+                    'end_acc': end_acc
+                }
+            else:
+                # 对于返回元组的情况，扩展返回结果
+                function_return = (function_return, {
+                    'loss_reduction': loss_reduction,
+                    'acc_improvement': acc_improvement
+                })
 
         return function_return

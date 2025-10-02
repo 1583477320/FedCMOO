@@ -67,6 +67,15 @@ class Server(object):
                             project=self.config['swanlab']['swanlab_project_name'],
                             experiment_name=self.config['swanlab']['swanlab_runname'])
 
+        # 添加训练进度跟踪
+        self.algorithm_progress = {
+            'fsmgda': {'loss_reductions': [], 'acc_improvements': []},
+            'fedcmoo': {'loss_reductions': [], 'acc_improvements': []},
+            'fsmgda_vr': {'loss_reductions': [], 'acc_improvements': []}
+        }
+
+        # 平滑窗口
+        self.smooth_window = 40
     # Set up server
     def boot(self, use_the_same_dataset_clients=False):
 
@@ -243,6 +252,81 @@ class Server(object):
         if self.config['swanlab']['flag']:
             self.swanlab.config.update(self.config)
 
+    def collect_training_progress(self, participating_clients, algorithm):
+        """收集客户端的训练进度"""
+        round_loss_reductions = []
+        round_acc_improvements = []
+
+        for client in participating_clients:
+            if hasattr(client, 'training_progress') and algorithm in client.training_progress:
+                progress = client.training_progress[algorithm]
+                if progress['loss_reductions']:
+                    round_loss_reductions.append(progress['loss_reductions'][-1])
+                if progress['acc_improvements']:
+                    round_acc_improvements.append(progress['acc_improvements'][-1])
+
+        # 计算本轮平均值
+        if round_loss_reductions:
+            avg_loss_reduction = sum(round_loss_reductions) / len(round_loss_reductions)
+            avg_acc_improvement = sum(round_acc_improvements) / len(round_acc_improvements)
+
+            self.algorithm_progress[algorithm]['loss_reductions'].append(avg_loss_reduction)
+            self.algorithm_progress[algorithm]['acc_improvements'].append(avg_acc_improvement)
+
+            return avg_loss_reduction, avg_acc_improvement
+
+        return None, None
+
+    def get_training_progress(self, algorithm=None):
+        """获取训练进度数据"""
+        if algorithm:
+            return self.algorithm_progress.get(algorithm, {})
+        return self.algorithm_progress
+
+    def get_smoothed_progress(self, algorithm, window_size=40):
+        """获取平滑后的训练进度数据"""
+        if algorithm not in self.algorithm_progress:
+            return {}, {}
+
+        data = self.algorithm_progress[algorithm]
+        smoothed_loss = self.smooth_data(data['loss_reductions'], window_size)
+        smoothed_acc = self.smooth_data(data['acc_improvements'], window_size)
+
+        return smoothed_loss, smoothed_acc
+
+    def smooth_data(self, data, window_size=40):
+        """对数据进行滑动平均平滑"""
+        if len(data) < window_size:
+            return data
+
+        smoothed = []
+        for i in range(len(data)):
+            start_idx = max(0, i - window_size + 1)
+            window_data = data[start_idx:i + 1]
+            smoothed.append(sum(window_data) / len(window_data))
+        return smoothed
+
+    def get_progress_statistics(self, algorithm):
+        """获取训练进度统计信息"""
+        if algorithm not in self.algorithm_progress:
+            return None
+
+        data = self.algorithm_progress[algorithm]
+        loss_reductions = data['loss_reductions']
+        acc_improvements = data['acc_improvements']
+
+        if not loss_reductions:
+            return None
+
+        stats = {
+            'avg_loss_reduction': sum(loss_reductions) / len(loss_reductions),
+            'avg_acc_improvement': sum(acc_improvements) / len(acc_improvements),
+            'max_loss_reduction': max(loss_reductions),
+            'max_acc_improvement': max(acc_improvements),
+            'total_rounds': len(loss_reductions)
+        }
+        return stats
+
     def train(self):
         """Train the global model using federated learning."""
         for m in self.model:
@@ -331,6 +415,8 @@ class Server(object):
                                        normalized_updates=averaged_updates, scales=self.scales)
                 if self.boost_w_gpu:
                     transfer_parameters(self.model_cuda, self.model)
+                # 收集训练进度
+                self.collect_training_progress(participating_clients, 'fsmgda')
 
             elif self.config['algorithm'] == 'fedcmoo':
                 scale_updates = []
@@ -393,6 +479,8 @@ class Server(object):
                                        normalized_updates=averaged_updates)
                 if self.boost_w_gpu:
                     transfer_parameters(self.model_cuda, self.model)
+                # 收集训练进度
+                self.collect_training_progress(participating_clients, 'fedcmoo')
 
             elif self.config['algorithm'] == 'fedcmoo_pref':
                 scale_updates = []
@@ -630,7 +718,8 @@ class Server(object):
 
                 if self.boost_w_gpu:
                     transfer_parameters(self.model_cuda, self.model)
-
+                # 收集训练进度
+                self.collect_training_progress(participating_clients, 'fsmgda_vr')
 
 
             # Initialize an empty dictionary to collect all swanlab logs

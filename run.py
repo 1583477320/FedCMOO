@@ -7,14 +7,12 @@ logging.basicConfig(
     format='[%(levelname)s][%(asctime)s]: %(message)s', level=getattr(logging, 'INFO'), datefmt='%H:%M:%S')
 
 def main():
-    if len(sys.argv) > 1:
-        config_path = sys.argv[1]
-        a = config.Config(config_path)
-        s = server.Server(a)
-        s.boot()
-        t = s.train()
-    else:
-        print("No config json file provided!")
+    config_path = r'C:\Users\15834\Documents\GitHub\FedCMOO\base_config.json'
+    a = config.Config(config_path)
+    s = server.Server(a)
+    s.boot()
+    s.train()
+    print("No config json file provided!")
 
 if __name__ == "__main__":
     main()
