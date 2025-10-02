@@ -1302,7 +1302,8 @@ class Client(object):
 
         # 在训练结束后记录性能
         if algorithm in ['fedcmoo', 'fsmgda_vr']:
-
+            end_loss, end_acc,end_loss_list,end_acc_list = self.evaluate_local_performance(global_model, experiment_module, tasks, config)
+            
             # 计算损失减少和准确率提升
             loss_reduction = start_loss - end_loss
             acc_improvement = end_acc - start_acc
@@ -1323,3 +1324,4 @@ class Client(object):
                 }
 
         return function_return
+
