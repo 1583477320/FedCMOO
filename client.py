@@ -81,7 +81,6 @@ class Client(object):
         """评估模型在本地数据上的性能"""
         model_device = config['model_device']
         boost_w_gpu = True if device == 'cuda' and model_device != 'cuda' else False
-        return_device = 'cuda' if (model_device == 'cuda' or boost_w_gpu) else 'cpu'
 
         # 临时保存原始模型状态
         original_states = {}
@@ -91,7 +90,6 @@ class Client(object):
         # 评估性能
         total_loss = 0.0
         total_correct = 0
-        total_samples = 0
         loss_list = []
         acc_list = []
         loss_fn = experiment_module.get_loss()
@@ -102,6 +100,7 @@ class Client(object):
         with torch.no_grad():
             batch = next(iter(self.dataloader))
             images = experiment_module.trainLoopPreprocess(batch[0].to(device))
+
 
             for task in tasks:
                 labels = batch[tasks.index(task) + 1].to(device)
@@ -464,6 +463,27 @@ class Client(object):
                         {True: device, False: model_device}[boost_w_gpu]) for name in final_task_model[task]} for task
                     in tasks}}
 
+                end_loss, end_acc, end_loss_list, end_acc_list = self.evaluate_local_performance(global_model,
+                                                                                                 experiment_module,
+                                                                                                 tasks, config)
+                # 计算损失减少和准确率提升
+                loss_reduction = start_loss - end_loss
+                acc_improvement = end_acc - start_acc
+
+                # 存储训练进度
+                self.training_progress[algorithm]['loss_reductions'].append(loss_reduction)
+                self.training_progress[algorithm]['acc_improvements'].append(acc_improvement)
+
+                # 返回训练进度数据
+                if isinstance(function_return, dict):
+                    function_return['training_progress'] = {
+                        'loss_reduction': loss_reduction,
+                        'acc_improvement': acc_improvement,
+                        'start_loss': start_loss,
+                        'start_acc': start_acc,
+                        'end_loss': end_loss,
+                        'end_acc': end_acc
+                    }
         elif config['algorithm'] == 'fedcmoo_pref':
             current_weight = kwargs['current_weight']
             if kwargs['first_local_round'] == True:
@@ -1295,29 +1315,27 @@ class Client(object):
 
                 function_return = {"updates": updates}
 
-        # 在训练结束后记录性能
-        if algorithm in ['fedcmoo', 'fsmgda_vr']:
-            end_loss, end_acc,end_loss_list,end_acc_list = self.evaluate_local_performance(global_model, experiment_module, tasks, config)
-            
-            # 计算损失减少和准确率提升
-            loss_reduction = start_loss - end_loss
-            acc_improvement = end_acc - start_acc
+                end_loss, end_acc, end_loss_list, end_acc_list = self.evaluate_local_performance(global_model,
+                                                                                                 experiment_module,
+                                                                                                 tasks, config)
+                # 计算损失减少和准确率提升
+                loss_reduction = start_loss - end_loss
+                acc_improvement = end_acc - start_acc
 
-            # 存储训练进度
-            self.training_progress[algorithm]['loss_reductions'].append(loss_reduction)
-            self.training_progress[algorithm]['acc_improvements'].append(acc_improvement)
+                # 存储训练进度
+                self.training_progress[algorithm]['loss_reductions'].append(loss_reduction)
+                self.training_progress[algorithm]['acc_improvements'].append(acc_improvement)
 
-            # 返回训练进度数据
-            if isinstance(function_return, dict):
-                function_return['training_progress'] = {
-                    'loss_reduction': loss_reduction,
-                    'acc_improvement': acc_improvement,
-                    'start_loss': start_loss,
-                    'start_acc': start_acc,
-                    'end_loss': end_loss,
-                    'end_acc': end_acc
-                }
+                # 返回训练进度数据
+                if isinstance(function_return, dict):
+                    function_return['training_progress'] = {
+                        'loss_reduction': loss_reduction,
+                        'acc_improvement': acc_improvement,
+                        'start_loss': start_loss,
+                        'start_acc': start_acc,
+                        'end_loss': end_loss,
+                        'end_acc': end_acc
+                    }
+
 
         return function_return
-
-
