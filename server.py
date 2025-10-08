@@ -735,6 +735,14 @@ class Server(object):
                         log_message += f'Task {task} {metric} = {average_total_metrics[task][metric]:.4f}, '
                 logging.info(log_message.rstrip(', '))
                 # Log to swanlab
+                # Compute mean and std across tasks for all metrics
+                self.std_values = {"loss":None,"accuracy":None}
+                for metric in set([metric for task in self.tasks for metric in self.metrics.eval_metrics[task]]):
+                    task_values = [average_total_metrics[task][metric] for task in self.tasks if
+                                   metric in self.metrics.eval_metrics[task]]
+                    if task_values:  # Only log if there are valid tasks with this metric
+                        self.std_values[metric] = np.std(task_values)
+                        
                 if self.config['swanlab']['flag']:
                     # Log each task's metrics individually
                     for task in self.tasks:
