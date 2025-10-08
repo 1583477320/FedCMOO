@@ -86,7 +86,8 @@ class Server(object):
 
         # Create metrics
         self.metrics = get_metrics(self.config, self.experiment_module)
-
+        self.std_values = {"loss":[],"accuracy":[]}
+        
         # Ensure logging is configured
         self.configure_logging()
         logging.info(
@@ -741,7 +742,7 @@ class Server(object):
                     task_values = [average_total_metrics[task][metric] for task in self.tasks if
                                    metric in self.metrics.eval_metrics[task]]
                     if task_values:  # Only log if there are valid tasks with this metric
-                        self.std_values[metric] = np.std(task_values)
+                        self.std_values[metric].append(np.std(task_values))
                         
                 if self.config['swanlab']['flag']:
                     # Log each task's metrics individually
