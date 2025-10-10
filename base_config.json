@@ -3,7 +3,7 @@
     "total": 10,
     "do_test": false,
     "test_partition": 0,
-    "data_points": 400
+    "data_points": 6000
 },
 "algorithm": "fsmgda",
 "algorithm_args":{"fsmgda":{"scale_decoders" : true,
@@ -65,7 +65,7 @@
         "nb_of_local_rounds": 10,
         "local_lr": 0.25,
         "local_momentum": 0,
-        "local_lr_scheduler_flag": true
+        "local_lr_scheduler_flag": false
     }
 },
 "data": {
