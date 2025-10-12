@@ -252,8 +252,8 @@ def base_config_set(base_config_file_path, experiment, algorithm):
             d["hyperparameters"]["global_lr"] = 1.6
             d["hyperparameters"]["local_training"]["local_lr"] = 0.3
         elif algorithm == "fsmgda_vr":
-            d["hyperparameters"]["global_lr"] = 1.6
-            d["hyperparameters"]["local_training"]["local_lr"] = 0.15
+            d["hyperparameters"]["global_lr"] = 1.2
+            d["hyperparameters"]["local_training"]["local_lr"] = 0.5
             d["hyperparameters"]["local_training"]["local_lr_scheduler_flag"] = False
     
         
