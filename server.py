@@ -253,6 +253,10 @@ class Server(object):
             if self.boost_w_gpu:
                 self.model_cuda[m].train()
 
+        # 第一个点
+        average_total_metrics = self.evaluate_metrics('test')
+        self.metrics.update_metrics('test', average_total_metrics)
+        
         start_round = self.metrics.current_round
         for self.round_num in range(start_round, self.config['max_round']):
             if self.config["hyperparameters"]["local_training"]["local_lr_scheduler_flag"]:  # LR scheduler
