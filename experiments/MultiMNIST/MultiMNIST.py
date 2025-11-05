@@ -14,7 +14,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from exp_utils import *
 import logging
 
-
+seed = 42
+np.random.seed(42)
+torch.manual_seed(seed)
+torch.cuda.manual_seed_all(seed)
 ### Data ###
 
 def global_transformer():
