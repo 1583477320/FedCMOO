@@ -263,6 +263,8 @@ class Server(object):
                                                   min(self.config['nb_of_participating_clients'], len(self.clients)))
             algorithm_specific_log = ''
             if self.round_num == 0:
+                average_total_metrics = self.evaluate_metrics('test')
+                self.metrics.update_metrics('test', average_total_metrics)
                 if len(participating_clients) < self.config['nb_of_participating_clients']:
                     logging.warning(
                         f"Number of total clients ({self.total_clients}) is less than the desired number of participating clients ({self.config['nb_of_participating_clients']}). All clients are participating!")
