@@ -24,6 +24,7 @@ from optimizer import lr_scheduler
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 seed = 42
+np.random.seed(seed)
 torch.manual_seed(seed)
 torch.cuda.manual_seed_all(seed)
 
@@ -264,7 +265,6 @@ class Server(object):
                                                   min(self.config['nb_of_participating_clients'], len(self.clients)))
             algorithm_specific_log = ''
             if self.round_num == 0:
-                        # 第一个点
                 average_total_metrics = self.evaluate_metrics('test')
                 self.metrics.update_metrics('test', average_total_metrics)
                 if len(participating_clients) < self.config['nb_of_participating_clients']:
